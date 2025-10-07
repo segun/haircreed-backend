@@ -1,34 +1,46 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import db from '../instant';
+import { id } from '@instantdb/admin';
 
 // This is a placeholder for your User model from the database schema
 export type User = {
     id: string;
     username: string;
     passwordHash: string;
-    role: 'admin' | 'pos';
+    role: 'ADMIN' | 'POS_OPERATOR' | 'SUPER_ADMIN';
     fullName: string;
+    createdAt: number;
+    updatedAt: number;
 };
 
 @Injectable()
-export class UsersService {
-    // --- MOCK DATABASE ---
-    // In a real application, this data would come from your instantdb.
-    // We're pre-hashing the password 'password' for our mock admin user.
-    private readonly users: User[] = [
-        {
-            id: '1',
-            username: 'admin',
-            // The hashed version of "password". Never store plain text passwords.
-            passwordHash: bcrypt.hashSync('password', 10),
-            role: 'admin',
-            fullName: 'Super Admin',
-        },
-    ];
-    // --- END MOCK DATABASE ---
+export class UsersService implements OnModuleInit {
+    async onModuleInit() {
+        const admin = await this.findOne('admin');
+        if (!admin) {
+            const passwordHash = await bcrypt.hash('@B50lut3', 10);
+            await db.transact([
+                db.tx.Users[id()].update({
+                    fullName: 'Super Admin',
+                    username: 'admin',
+                    passwordHash,
+                    role: 'SUPER_ADMIN',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    requiresPasswordReset: false,
+                }),
+            ]);
+        }
+    }
 
     async findOne(username: string): Promise<User | undefined> {
-        // In a real app, this would be: db.collection('users').find({ where: { username } })
-        return this.users.find((user) => user.username === username);
+        const usersResponse = await db.query({ Users: { $: { where: { username } } } });
+        // map the response to User type
+        if (usersResponse.Users.length === 0) {
+            return undefined;
+        } else {
+            return { ...usersResponse.Users[0], role: usersResponse.Users[0].role as 'ADMIN' | 'POS_OPERATOR' | 'SUPER_ADMIN' };
+        }
     }
 }
