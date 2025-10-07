@@ -1,56 +1,60 @@
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import db from '../instant';
+import { id } from '@instantdb/admin';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 
 @Injectable()
 export class InventoryAttributesService {
-  constructor(@Inject('INSTANT_DB') private readonly db: any) {}
-
-  async getAllCategories() {
-    const categories = await this.db.query({
-      AttributeCategory: { items: {} },
-    });
-    return categories.AttributeCategory;
-  }
-
   async createCategory(createCategoryDto: CreateCategoryDto) {
     const { title } = createCategoryDto;
-    const newCategory = await this.db.create('AttributeCategory', {
-      title,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    return { ...newCategory, items: [] };
+    const newCategoryId = id();
+    await db.transact([
+      db.tx.AttributeCategory[newCategoryId].create({
+        title,
+        createdAt: new Date().getTime(),
+        updatedAt: new Date().getTime(),
+      }),
+    ]);
+    return { id: newCategoryId, title, items: [] };
   }
 
   async deleteCategory(categoryId: string) {
-    await this.db.delete(`AttributeCategory:${categoryId}`);
+    await db.transact([db.tx.AttributeCategory[categoryId].delete()]);
   }
 
   async createItem(categoryId: string, createItemDto: CreateItemDto) {
     const { name } = createItemDto;
-    const newItem = await this.db.create('AttributeItem', {
-      name,
-      category: categoryId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    return newItem;
+    const newItemId = id();
+    await db.transact([
+      db.tx.AttributeItem[newItemId].create({
+        name,
+        createdAt: new Date().getTime(),
+        updatedAt: new Date().getTime(),
+      }),      
+    ]);
+
+    await db.transact(db.tx.AttributeCategory[categoryId].link({ items: newItemId }));
+    return { id: newItemId, name };
   }
 
   async updateItem(itemId: string, updateItemDto: UpdateItemDto) {
     const { name } = updateItemDto;
-    const updatedItem = await this.db.update(`AttributeItem:${itemId}`, {
+    await db.transact([
+      db.tx.AttributeItem[itemId].update({
+        name,
+        updatedAt: new Date().getTime(),
+      }),
+    ]);
+    return {
+      id: itemId,
       name,
-      updatedAt: new Date(),
-    });
-    return updatedItem;
+    };
   }
 
   async deleteItem(itemId: string) {
-    await this.db.delete(`AttributeItem:${itemId}`);
+    await db.transact([db.tx.AttributeItem[itemId].delete()]);
   }
 }

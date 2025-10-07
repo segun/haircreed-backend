@@ -9,11 +9,6 @@ import { UpdateItemDto } from './dto/update-item.dto';
 export class InventoryAttributesController {
   constructor(private readonly inventoryAttributesService: InventoryAttributesService) {}
 
-  @Get('categories')
-  getAllCategories() {
-    return this.inventoryAttributesService.getAllCategories();
-  }
-
   @Post('categories')
   createCategory(@Body() createCategoryDto: CreateCategoryDto) {
     return this.inventoryAttributesService.createCategory(createCategoryDto);
