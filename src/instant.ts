@@ -6,8 +6,10 @@ dotenv.config();
 export const _schema = i.schema({
   entities: {
     Users: i.entity({
+      id: i.string().unique(),
       fullName: i.string(),
       username: i.string().unique(),
+      email: i.string().unique().indexed(),
       passwordHash: i.string(),
       role: i.string(),
       requiresPasswordReset: i.boolean(),
@@ -15,11 +17,13 @@ export const _schema = i.schema({
       updatedAt: i.number(),
     }),
     AttributeCategory: i.entity({
+      id: i.string().unique(),
       title: i.string().unique(),
       createdAt: i.number(),
       updatedAt: i.number(),
     }),
     AttributeItem: i.entity({
+      id: i.string().unique(),
       name: i.string(),
       createdAt: i.number(),
       updatedAt: i.number(),
