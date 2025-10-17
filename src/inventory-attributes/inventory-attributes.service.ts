@@ -13,7 +13,6 @@ export class InventoryAttributesService {
     const newCategoryId = id();
     await db.transact([
       db.tx.AttributeCategory[newCategoryId].create({
-        id: newCategoryId,
         title,
         createdAt: new Date().getTime(),
         updatedAt: new Date().getTime(),
@@ -31,7 +30,6 @@ export class InventoryAttributesService {
     const newItemId = id();
     await db.transact([
       db.tx.AttributeItem[newItemId].create({
-        id: newItemId,
         name,        
         createdAt: new Date().getTime(),
         updatedAt: new Date().getTime(),

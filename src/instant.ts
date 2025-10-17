@@ -6,7 +6,6 @@ dotenv.config();
 export const _schema = i.schema({
   entities: {
     Users: i.entity({
-      id: i.string().unique(),
       fullName: i.string(),
       username: i.string().unique(),
       email: i.string().unique().indexed(),
@@ -17,19 +16,16 @@ export const _schema = i.schema({
       updatedAt: i.number(),
     }),
     AttributeCategory: i.entity({
-      id: i.string().unique(),
       title: i.string().unique(),
       createdAt: i.number(),
       updatedAt: i.number(),
     }),
     AttributeItem: i.entity({
-      id: i.string().unique(),
       name: i.string(),
       createdAt: i.number(),
       updatedAt: i.number(),
     }),
-    Orders: i.entity({
-      id: i.string().unique(),
+    Orders: i.entity({      
       orderNumber: i.string(),
       items: i.json(),
       amount: i.number(),
@@ -47,13 +43,26 @@ export const _schema = i.schema({
       statusHistory: i.json(),
     }),
     Customers: i.entity({
-      id: i.string().unique(),
       fullName: i.string(),
       email: i.string().unique(),
       phoneNumber: i.string().unique(),
       address: i.string(),
       createdAt: i.number(),
     }),
+    Suppliers: i.entity({
+      name: i.string(),
+      contactPerson: i.string().optional(),
+      email: i.string().optional(),
+      phoneNumber: i.string().optional(),
+      address: i.string().optional(),
+      notes: i.string().optional(),
+      createdAt: i.number(),
+    }),
+    InventoryItems: i.entity({
+      quantity: i.number(),
+      costPrice: i.number().optional(),
+      lastStockedAt: i.number(),
+    }),    
   },
   links: {
     AttributeCategoryItem: {
@@ -67,6 +76,14 @@ export const _schema = i.schema({
     UserOrder: {
       forward: { on: 'Orders', has: 'one', label: 'posOperator' },
       reverse: { on: 'Users', has: 'many', label: 'createdOrders' },
+    },
+    InventoryItemSupplier: {
+      forward: { on: 'InventoryItems', has: 'one', label: 'supplier' },
+      reverse: { on: 'Suppliers', has: 'many', label: 'inventoryItems' },
+    },
+    InventoryItemAttribute: {
+      forward: { on: 'InventoryItems', has: 'many', label: 'attributes' },
+      reverse: { on: 'AttributeItem', has: 'many', label: 'inventoryItems' },
     },
   },
 });
