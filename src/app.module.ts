@@ -7,6 +7,7 @@ import { InstantModule } from "./instant/instant.module";
 import { InventoryAttributesModule } from "./inventory-attributes/inventory-attributes.module";
 import { SuppliersModule } from "./suppliers/suppliers.module";
 import { InventoryModule } from "./inventory/inventory.module";
+import { AppSettingsModule } from "./appsettings/appsettings.module";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { InventoryModule } from "./inventory/inventory.module";
     UsersModule,
     SuppliersModule,
     InventoryModule,
+    AppSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

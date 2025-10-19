@@ -1,10 +1,13 @@
-import { init, i } from '@instantdb/admin';
-import * as dotenv from 'dotenv';
+import { init, i } from "@instantdb/admin";
+import * as dotenv from "dotenv";
 
 dotenv.config();
 
 export const _schema = i.schema({
   entities: {
+    AppSettings: i.entity({
+      settings: i.json(),
+    }),
     Users: i.entity({
       fullName: i.string(),
       username: i.string().unique(),
@@ -25,7 +28,7 @@ export const _schema = i.schema({
       createdAt: i.number(),
       updatedAt: i.number(),
     }),
-    Orders: i.entity({      
+    Orders: i.entity({
       orderNumber: i.string(),
       items: i.json(),
       amount: i.number(),
@@ -46,7 +49,8 @@ export const _schema = i.schema({
       fullName: i.string(),
       email: i.string().unique(),
       phoneNumber: i.string().unique(),
-      address: i.string(),
+      headSize: i.string().optional(),
+      addresses: i.json().optional(),
       createdAt: i.number(),
     }),
     Suppliers: i.entity({
@@ -62,28 +66,28 @@ export const _schema = i.schema({
       quantity: i.number(),
       costPrice: i.number().optional(),
       lastStockedAt: i.number(),
-    }),    
+    }),
   },
   links: {
     AttributeCategoryItem: {
-      forward: { on: 'AttributeItem', has: 'one', label: 'category' },
-      reverse: { on: 'AttributeCategory', has: 'many', label: 'items' },
+      forward: { on: "AttributeItem", has: "one", label: "category" },
+      reverse: { on: "AttributeCategory", has: "many", label: "items" },
     },
     CustomerOrder: {
-      forward: { on: 'Orders', has: 'one', label: 'customer' },
-      reverse: { on: 'Customers', has: 'many', label: 'orders' },
+      forward: { on: "Orders", has: "one", label: "customer" },
+      reverse: { on: "Customers", has: "many", label: "orders" },
     },
     UserOrder: {
-      forward: { on: 'Orders', has: 'one', label: 'posOperator' },
-      reverse: { on: 'Users', has: 'many', label: 'createdOrders' },
+      forward: { on: "Orders", has: "one", label: "posOperator" },
+      reverse: { on: "Users", has: "many", label: "createdOrders" },
     },
     InventoryItemSupplier: {
-      forward: { on: 'InventoryItems', has: 'one', label: 'supplier' },
-      reverse: { on: 'Suppliers', has: 'many', label: 'inventoryItems' },
+      forward: { on: "InventoryItems", has: "one", label: "supplier" },
+      reverse: { on: "Suppliers", has: "many", label: "inventoryItems" },
     },
     InventoryItemAttribute: {
-      forward: { on: 'InventoryItems', has: 'many', label: 'attributes' },
-      reverse: { on: 'AttributeItem', has: 'many', label: 'inventoryItems' },
+      forward: { on: "InventoryItems", has: "many", label: "attributes" },
+      reverse: { on: "AttributeItem", has: "many", label: "inventoryItems" },
     },
   },
 });
