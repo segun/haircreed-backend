@@ -8,6 +8,8 @@ import { InventoryAttributesModule } from "./inventory-attributes/inventory-attr
 import { SuppliersModule } from "./suppliers/suppliers.module";
 import { InventoryModule } from "./inventory/inventory.module";
 import { AppSettingsModule } from "./appsettings/appsettings.module";
+import { OrderModule } from "./order/order.module";
+import { CustomersModule } from "./customers/customers.module";
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { AppSettingsModule } from "./appsettings/appsettings.module";
     SuppliersModule,
     InventoryModule,
     AppSettingsModule,
+    OrderModule,
+    CustomersModule
   ],
   controllers: [AppController],
   providers: [AppService],

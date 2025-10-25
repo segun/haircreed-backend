@@ -14,3 +14,19 @@ export type InventoryItem = InstaQLEntity<Schema, 'InventoryItems'> & {
   supplier: Supplier;
   attributes: AttributeItem[];
 };
+
+export type AppSettings = {
+    id: string;
+    settings: Settings;
+}
+
+export type Settings = {
+    vatRate: number;
+}
+
+export type Orders = InstaQLEntity<Schema, 'Orders'>;
+export type CustomerAddress = InstaQLEntity<Schema, 'CustomerAddress'>;
+export type Customers = InstaQLEntity<Schema, 'Customers'> & {
+    orders: Orders[];
+    addresses: CustomerAddress[];
+};

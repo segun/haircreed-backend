@@ -50,7 +50,6 @@ export const _schema = i.schema({
       email: i.string().unique(),
       phoneNumber: i.string().unique(),
       headSize: i.string().optional(),
-      addresses: i.json().optional(),
       createdAt: i.number(),
     }),
     Suppliers: i.entity({
@@ -66,6 +65,11 @@ export const _schema = i.schema({
       quantity: i.number(),
       costPrice: i.number().optional(),
       lastStockedAt: i.number(),
+    }),
+    CustomerAddress: i.entity({
+      address: i.string(),
+      isPrimary: i.boolean(),
+      createdAt: i.number(),
     }),
   },
   links: {
@@ -88,6 +92,10 @@ export const _schema = i.schema({
     InventoryItemAttribute: {
       forward: { on: "InventoryItems", has: "many", label: "attributes" },
       reverse: { on: "AttributeItem", has: "many", label: "inventoryItems" },
+    },
+    CustomerCustomerAddresses: {
+      forward: { on: "Customers", has: "many", label: "addresses" },
+      reverse: { on: "CustomerAddress", has: "one", label: "customer" },
     },
   },
 });
