@@ -21,6 +21,7 @@ export class UsersService implements OnModuleInit {
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                     requiresPasswordReset: false,
+                    email: 'admin@haircreed.com'
                 }),
             ]);
         }

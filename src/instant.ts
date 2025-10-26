@@ -43,6 +43,7 @@ export const _schema = i.schema({
       paymentStatus: i.string(),
       deliveryMethod: i.string(),
       createdAt: i.number(),
+      updatedAt: i.number(),
       statusHistory: i.json(),
     }),
     Customers: i.entity({
