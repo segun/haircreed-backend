@@ -45,6 +45,7 @@ export const _schema = i.schema({
       createdAt: i.number(),
       updatedAt: i.number(),
       statusHistory: i.json(),
+      notes: i.string().optional(),
     }),
     Customers: i.entity({
       fullName: i.string(),

@@ -2,6 +2,7 @@ import { IsObject } from 'class-validator';
 
 export class CreateOrderDto {
     customerId: string;
+    posOperatorId: string;
     items: { id: string; quantity: number; price: number }[];
     status: 'CREATED' | 'PENDING' | 'COMPLETED' | 'CANCELLED';
     notes?: string;
