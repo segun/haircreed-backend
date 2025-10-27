@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { id } from '@instantdb/admin';
 import db from '../instant';
-import { Supplier } from 'src/types';
+import { Supplier } from '../types';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 
 @Injectable()

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { id, TransactionChunk } from "@instantdb/admin";
 import db from "../instant";
-import { InventoryItem } from "src/types";
+import { InventoryItem } from "../types";
 import { CreateInventoryItemDto } from "./dto/create-inventory-item.dto";
 import { UpdateInventoryItemDto } from "./dto/update-inventory-item.dto";
 
@@ -89,7 +89,7 @@ export class InventoryService {
     await db.transact(db.tx.InventoryItems[id].delete());
   }
 
-  private async findOne(id: string): Promise<InventoryItem> {
+  async findOne(id: string): Promise<InventoryItem> {
     const findOneResponse = await db.query({
       InventoryItems: { $: { where: { id } }, supplier: {}, attributes: {} },
     });

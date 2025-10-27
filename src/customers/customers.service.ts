@@ -3,7 +3,7 @@ import { id } from "@instantdb/admin";
 import db from "../instant";
 import { CreateCustomerDto } from "./dto/create-customer.dto";
 import { UpdateCustomerDto } from "./dto/update-customer.dto";
-import { Customers } from "src/types";
+import { Customers } from "../types";
 
 @Injectable()
 export class CustomersService {

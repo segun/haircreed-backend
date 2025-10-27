@@ -8,7 +8,7 @@ import {
 import { OrderService } from "./order.service";
 import { CreateOrderDto,  } from "./dto/create-order.dto";
 import { UpdateOrderDto } from "./dto/update-order.dto";
-import { Orders } from "src/types";
+import { Orders } from "../types";
 
 @Controller("api/v1/orders")
 export class OrderController {

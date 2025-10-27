@@ -1,5 +1,5 @@
 
-import { Orders } from "src/types";
+import { Orders } from "../../types";
 
 export class UpdateOrderDto {
   updates: Partial<Orders>;

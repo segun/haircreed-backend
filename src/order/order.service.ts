@@ -1,12 +1,15 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { id } from "@instantdb/admin";
 import db from "../instant";
 import { CreateOrderDto } from "./dto/create-order.dto";
-import { Orders } from "src/types";
+import { Orders } from "../types";
 import { UpdateOrderDto } from "./dto/update-order.dto";
+import { InventoryService } from "../inventory/inventory.service";
 
 @Injectable()
 export class OrderService {
+  constructor(private inventoryService: InventoryService) {}
+
   async findOne(id: string): Promise<Orders> {
     const findOneResponse = await db.query({
       Orders: { $: { where: { id } } },
@@ -43,7 +46,7 @@ export class OrderService {
         updatedAt: Date.now(),
         statusHistory: JSON.stringify([
           {
-            user: createOrderDto.posOperatorId,     
+            user: createOrderDto.posOperatorId,
             status: createOrderDto.status,
             timestamp: Date.now(),
           },
@@ -77,6 +80,27 @@ export class OrderService {
     const order = await this.findOne(id);
     const { updates, userId } = updateOrderDto;
 
+    if (updates.orderStatus) {
+      // ['CREATED', 'IN PROGRESS', 'COMPLETED', 'DISPATCHED', 'DELIVERED', 'CANCELLED', 'RETURNED']
+      // if current status === COMPLETED or higher (order.orderStatus), then new status (updates.orderStatus) can not be CREATED or IN PROGRESS
+      if (
+        order.orderStatus === "COMPLETED" ||
+        order.orderStatus === "DISPATCHED" ||
+        order.orderStatus === "DELIVERED" ||
+        order.orderStatus === "CANCELLED" ||
+        order.orderStatus === "RETURNED"
+      ) {
+        if (
+          updates.orderStatus === "CREATED" ||
+          updates.orderStatus === "IN PROGRESS"
+        ) {
+            throw new BadRequestException(
+              "Order already completed. Can not change status to CREATED or IN PROGRESS",
+            );
+        }
+      }
+    }
+
     const statusHistory = JSON.parse(order.statusHistory || "[]");
 
     statusHistory.push({
@@ -92,6 +116,19 @@ export class OrderService {
         statusHistory: JSON.stringify(statusHistory),
       }),
     );
+
+    if (updates.orderStatus) {
+      if (updates.orderStatus === "COMPLETED") {
+        const items = JSON.parse(order.items);
+        for (const item of items) {
+          const inventoryItem = await this.inventoryService.findOne(item.id);
+          const newQuantity = inventoryItem.quantity - item.quantity;
+          await this.inventoryService.update(item.id, {
+            quantity: newQuantity,
+          });
+        }
+      }
+    }
 
     return this.findOne(id);
   }

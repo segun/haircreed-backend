@@ -1,8 +1,8 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import db from '../instant';
 import { id } from '@instantdb/admin';
-import { User } from "src/types";
+import { User } from "../types";
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -57,7 +57,7 @@ export class UsersService implements OnModuleInit {
     async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
         const user = await this.findOneById(id);
         if (!user) {
-            throw new Error('User not found');
+            throw new NotFoundException('User not found');
         }
 
         const { passwordHash, ...rest } = updateUserDto;

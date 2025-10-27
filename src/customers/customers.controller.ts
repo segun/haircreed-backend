@@ -8,7 +8,7 @@ import {
 import { CustomersService } from "./customers.service";
 import { CreateCustomerDto } from "./dto/create-customer.dto";
 import { UpdateCustomerDto } from "./dto/update-customer.dto";
-import { Customers } from "src/types";
+import { Customers } from "../types";
 
 @Controller("api/v1/customers")
 export class CustomersController {
