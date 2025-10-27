@@ -79,10 +79,8 @@ export class OrderService {
   async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Orders> {
     const order = await this.findOne(id);
     const { updates, userId } = updateOrderDto;
-
+    
     if (updates.orderStatus) {
-      // ['CREATED', 'IN PROGRESS', 'COMPLETED', 'DISPATCHED', 'DELIVERED', 'CANCELLED', 'RETURNED']
-      // if current status === COMPLETED or higher (order.orderStatus), then new status (updates.orderStatus) can not be CREATED or IN PROGRESS
       if (
         order.orderStatus === "COMPLETED" ||
         order.orderStatus === "DISPATCHED" ||
