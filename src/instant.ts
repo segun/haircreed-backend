@@ -42,7 +42,7 @@ export const _schema = i.schema({
       orderStatus: i.string(),
       paymentStatus: i.string(),
       deliveryMethod: i.string(),
-      createdAt: i.number(),
+      createdAt: i.number().indexed(),
       updatedAt: i.number(),
       statusHistory: i.json(),
       notes: i.string().optional(),

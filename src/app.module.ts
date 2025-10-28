@@ -11,6 +11,7 @@ import { InventoryModule } from "./inventory/inventory.module";
 import { AppSettingsModule } from "./appsettings/appsettings.module";
 import { OrderModule } from "./order/order.module";
 import { CustomersModule } from "./customers/customers.module";
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { CustomersModule } from "./customers/customers.module";
     OrderModule,
     CustomersModule,
     PdfModule,    
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
