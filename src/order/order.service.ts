@@ -32,7 +32,7 @@ export class OrderService {
           (createOrderDto.vat +
             createOrderDto.discount +
             createOrderDto.deliveryCharge),
-        vatRate: createOrderDto.vatRate,
+        vatRate: +createOrderDto.vatRate,
         vatAmount: createOrderDto.vat,
         discountType: createOrderDto.discount > 0 ? "fixed" : "none",
         discountValue: createOrderDto.discount,

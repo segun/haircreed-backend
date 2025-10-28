@@ -98,7 +98,7 @@ export const _schema = i.schema({
     CustomerCustomerAddresses: {
       forward: { on: "Customers", has: "many", label: "addresses" },
       reverse: { on: "CustomerAddress", has: "one", label: "customer" },
-    },
+    }, 
   },
 });
 
