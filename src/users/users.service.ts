@@ -5,6 +5,7 @@ import { id } from '@instantdb/admin';
 import { User } from "../types";
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserSettingsDto } from "./dto/update-user-settings.dto";
 
 @Injectable()
 export class UsersService implements OnModuleInit {
@@ -82,5 +83,41 @@ export class UsersService implements OnModuleInit {
         } else {
             return { ...usersResponse.Users[0], role: usersResponse.Users[0].role as 'ADMIN' | 'POS_OPERATOR' | 'SUPER_ADMIN' };
         }
+    }
+
+    async updateSettings(id: string, updateUserSettingsDto: UpdateUserSettingsDto): Promise<User> {
+        const user = await this.findOneById(id);
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        const { fullName, username, newPassword, currentPassword } = updateUserSettingsDto;
+
+        if (newPassword) {
+            if (!currentPassword) {
+                throw new Error('Current password is required to set a new password');
+            }
+            const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+            if (!isMatch) {
+                throw new Error('Invalid current password');
+            }
+            user.passwordHash = await bcrypt.hash(newPassword, 10);
+        }
+
+        if (fullName) {
+            user.fullName = fullName;
+        }
+
+        if (username) {
+            user.username = username;
+        }
+
+        user.updatedAt = Date.now();
+
+        await db.transact([
+            db.tx.Users[id].update(user)
+        ]);
+
+        return user;
     }
 }
