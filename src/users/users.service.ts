@@ -62,8 +62,15 @@ export class UsersService implements OnModuleInit {
         }
 
         const { passwordHash, ...rest } = updateUserDto;
-        const hashedPassword = await bcrypt.hash(passwordHash, 10);
-        const updatedUser = { ...user, ...rest, passwordHash: hashedPassword, updatedAt: Date.now() };
+
+        const updatedData: Partial<User> = { ...rest, updatedAt: Date.now() };
+
+        if (passwordHash) {
+            updatedData.passwordHash = await bcrypt.hash(passwordHash, 10);
+        }
+
+        const updatedUser = { ...user, ...updatedData };
+
         await db.transact([
             db.tx.Users[id].update(updatedUser)
         ]);
