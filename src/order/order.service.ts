@@ -117,7 +117,7 @@ export class OrderService {
 
     if (updates.orderStatus) {
       if (updates.orderStatus === "COMPLETED") {
-        const items = JSON.parse(order.items);
+        const items = order.items;
         for (const item of items) {
           const inventoryItem = await this.inventoryService.findOne(item.id);
           const newQuantity = inventoryItem.quantity - item.quantity;
