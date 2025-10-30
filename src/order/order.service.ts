@@ -8,7 +8,7 @@ import { InventoryService } from "../inventory/inventory.service";
 
 @Injectable()
 export class OrderService {
-  constructor(private inventoryService: InventoryService) {}
+  constructor(private inventoryService: InventoryService) { }
 
   async findOne(id: string): Promise<Orders> {
     const findOneResponse = await db.query({
@@ -79,8 +79,24 @@ export class OrderService {
   async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Orders> {
     const order = await this.findOne(id);
     const { updates, userId } = updateOrderDto;
-    
+
     if (updates.orderStatus) {
+      // order can not move to DISPATCHED, DELIVERED, CANCELLED, RETURNED if ORDER is in CREATED or IN PROGRESS
+      // only COMPLETED orders can move to DISPATCHED, DELIVERED, CANCELLED, RETURNED
+
+      if (order.orderStatus === "CREATED" || order.orderStatus === "IN PROGRESS") {
+        if (
+          updates.orderStatus === "DISPATCHED" ||
+          updates.orderStatus === "DELIVERED" ||
+          updates.orderStatus === "CANCELLED" ||
+          updates.orderStatus === "RETURNED"
+        ) {
+            throw new BadRequestException(
+              "Order must be COMPLETED before changing status to DISPATCHED, DELIVERED, CANCELLED, or RETURNED",
+            );
+        }
+      }
+
       if (
         order.orderStatus === "COMPLETED" ||
         order.orderStatus === "DISPATCHED" ||
@@ -92,9 +108,9 @@ export class OrderService {
           updates.orderStatus === "CREATED" ||
           updates.orderStatus === "IN PROGRESS"
         ) {
-            throw new BadRequestException(
-              "Order already completed. Can not change status to CREATED or IN PROGRESS",
-            );
+          throw new BadRequestException(
+            "Order already completed. Can not change status to CREATED or IN PROGRESS",
+          );
         }
       }
     }
