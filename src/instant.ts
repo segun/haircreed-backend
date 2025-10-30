@@ -48,7 +48,7 @@ export const _schema = i.schema({
       notes: i.string().optional(),
     }),
     Customers: i.entity({
-      fullName: i.string(),
+      fullName: i.string().indexed(),
       email: i.string().unique(),
       phoneNumber: i.string().unique(),
       headSize: i.string().optional(),
@@ -64,7 +64,7 @@ export const _schema = i.schema({
       createdAt: i.number(),
     }),
     InventoryItems: i.entity({
-      quantity: i.number(),
+      quantity: i.number().indexed(),
       costPrice: i.number().optional(),
       lastStockedAt: i.number(),
     }),
