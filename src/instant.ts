@@ -66,7 +66,7 @@ export const _schema = i.schema({
     InventoryItems: i.entity({
       quantity: i.number().indexed(),
       costPrice: i.number().optional(),
-      lastStockedAt: i.number(),
+      lastStockedAt: i.number().indexed(),
     }),
     CustomerAddress: i.entity({
       address: i.string(),
