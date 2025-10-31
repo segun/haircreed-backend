@@ -28,7 +28,7 @@ export class DashboardService {
         const newOrdersYesterday = Orders.filter(o => o.createdAt >= (now - 2 * oneDay) && o.createdAt < (now - oneDay)).length;
         const newOrdersChange = newOrdersToday - newOrdersYesterday;
 
-        const pendingPayments = Orders.filter(o => o.paymentStatus === 'pending').length;
+        const pendingPayments = Orders.filter(o => o.paymentStatus === 'PENDING').length;
 
         const inventoryItems = InventoryItems.length;
 
