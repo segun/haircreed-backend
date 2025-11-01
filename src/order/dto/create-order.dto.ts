@@ -4,7 +4,7 @@ export class CreateOrderDto {
     customerId: string;
     posOperatorId: string;
     items: { id: string; quantity: number; price: number }[];
-    status: 'CREATED' | 'PENDING' | 'COMPLETED' | 'CANCELLED';
+    status: 'CREATED' | 'IN PROGRESS' | 'COMPLETED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED' | 'RETURNED';
     notes?: string;
     orderType: 'pickup' | 'delivery';
     deliveryCharge: number;
