@@ -12,6 +12,7 @@ import { AppSettingsModule } from "./appsettings/appsettings.module";
 import { OrderModule } from "./order/order.module";
 import { CustomersModule } from "./customers/customers.module";
 import { DashboardModule } from './dashboard/dashboard.module';
+import { BackupModule } from './backup/backup.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     CustomersModule,
     PdfModule,    
     DashboardModule,
+    BackupModule,
   ],
   controllers: [AppController],
   providers: [AppService],
