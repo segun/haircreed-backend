@@ -2,6 +2,7 @@
 import { Controller, Get, Post, Body, Param, Delete, Patch, HttpCode } from '@nestjs/common';
 import { InventoryAttributesService } from './inventory-attributes.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 
@@ -12,6 +13,14 @@ export class InventoryAttributesController {
   @Post('categories')
   createCategory(@Body() createCategoryDto: CreateCategoryDto) {
     return this.inventoryAttributesService.createCategory(createCategoryDto);
+  }
+
+  @Patch('categories/:categoryId')
+  updateCategory(
+    @Param('categoryId') categoryId: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+  ) {
+    return this.inventoryAttributesService.updateCategory(categoryId, updateCategoryDto);
   }
 
   @Delete('categories/:categoryId')

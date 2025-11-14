@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import db from '../instant';
 import { id } from '@instantdb/admin';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 
@@ -19,6 +20,17 @@ export class InventoryAttributesService {
       }),
     ]);
     return { id: newCategoryId, title, items: [] };
+  }
+
+  async updateCategory(categoryId: string, updateCategoryDto: UpdateCategoryDto) {
+    const { title } = updateCategoryDto;
+    await db.transact([
+      db.tx.AttributeCategory[categoryId].update({
+        title,
+        updatedAt: new Date().getTime(),
+      }),
+    ]);
+    return { id: categoryId, title };
   }
 
   async deleteCategory(categoryId: string) {
