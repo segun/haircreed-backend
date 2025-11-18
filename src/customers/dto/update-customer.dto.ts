@@ -5,6 +5,8 @@ import {
   IsEmail,
   IsBoolean,
   ValidateNested,
+  IsArray,
+  IsNumber,
 } from 'class-validator';
 
 class NewAddressDto {
@@ -13,6 +15,20 @@ class NewAddressDto {
 
   @IsBoolean()
   isPrimary: boolean;
+}
+
+class UpdatedAddressDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  address: string;
+
+  @IsBoolean()
+  isPrimary: boolean;
+
+  @IsNumber()
+  createdAt: number;
 }
 
 export class UpdateCustomerDto {
@@ -36,4 +52,14 @@ export class UpdateCustomerDto {
   @ValidateNested()
   @Type(() => NewAddressDto)
   newAddress?: NewAddressDto;
+
+  @IsBoolean()
+  @IsOptional()
+  addressChanged?: boolean;
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => UpdatedAddressDto)
+  updatedAddresses?: UpdatedAddressDto[];
 }

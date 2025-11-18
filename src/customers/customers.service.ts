@@ -49,11 +49,23 @@ export class CustomersService {
     customerId: string,
     updateCustomerDto: UpdateCustomerDto,
   ): Promise<Customers> {
-    const { newAddress, ...customerData } = updateCustomerDto;
+    const { newAddress, addressChanged, updatedAddresses, ...customerData } = updateCustomerDto;
     const txs = [];
 
     if (Object.keys(customerData).length > 0) {
       txs.push(db.tx.Customers[customerId].update(customerData));
+    }
+
+    // Handle bulk address updates when addressChanged is true
+    if (addressChanged && updatedAddresses && updatedAddresses.length > 0) {
+      for (const updatedAddress of updatedAddresses) {
+        txs.push(
+          db.tx.CustomerAddress[updatedAddress.id].update({
+            address: updatedAddress.address,
+            isPrimary: updatedAddress.isPrimary,
+          }),
+        );
+      }
     }
 
     if (newAddress) {
