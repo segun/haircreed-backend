@@ -132,7 +132,7 @@ export class OrderService {
     );
 
     if (updates.orderStatus) {
-      if (updates.orderStatus === "COMPLETED") {
+      if (updates.orderStatus === "COMPLETED" || updates.orderStatus === "DISPATCHED" || updates.orderStatus === "DELIVERED") {
         const items = order.items;
         for (const item of items) {
           const inventoryItem = await this.inventoryService.findOne(item.id);
