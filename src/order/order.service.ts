@@ -78,7 +78,32 @@ export class OrderService {
 
   async update(id: string, updateOrderDto: UpdateOrderDto): Promise<Orders> {
     const order = await this.findOne(id);
-    const { updates, userId } = updateOrderDto;
+    const { updates, userId, customerChanged } = updateOrderDto;
+
+    // Scenario 1: Handle customer change if customerChanged flag is true
+    if (customerChanged && updates.customerId) {
+      // Query existing customer link
+      const existingOrder = await db.query({
+        Orders: { $: { where: { id } }, customer: {} },
+      });
+
+      const existingCustomerId = existingOrder.Orders[0]?.customer?.id;
+
+      // Unlink existing customer if present
+      if (existingCustomerId) {
+        await db.transact([
+          db.tx.Orders[id].unlink({ customer: existingCustomerId }),
+        ]);
+      }
+
+      // Link new customer
+      await db.transact([
+        db.tx.Orders[id].link({ customer: updates.customerId }),
+      ]);
+
+      // Remove customerId from updates to avoid trying to update it as a field
+      delete updates.customerId;
+    }
 
     if (updates.orderStatus) {
       // order can not move to DISPATCHED, DELIVERED, CANCELLED, RETURNED if ORDER is in CREATED or IN PROGRESS
