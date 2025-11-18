@@ -109,4 +109,30 @@ export class CustomersService {
 
     return this.findOne(customerId);
   }
+
+  async delete(customerId: string): Promise<void> {
+    // First, get the customer with all addresses and orders
+    const customer = await this.findOne(customerId);
+
+    // Check if customer has orders
+    if (customer.orders && customer.orders.length > 0) {
+      throw new NotFoundException(
+        `Cannot delete customer with ID "${customerId}" because they have existing orders`,
+      );
+    }
+
+    const txs = [];
+
+    // Delete all associated addresses
+    if (customer.addresses && customer.addresses.length > 0) {
+      for (const address of customer.addresses) {
+        txs.push(db.tx.CustomerAddress[address.id].delete());
+      }
+    }
+
+    // Delete the customer
+    txs.push(db.tx.Customers[customerId].delete());
+
+    await db.transact(txs);
+  }
 }

@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Param,
+  Delete,
 } from "@nestjs/common";
 import { CustomersService } from "./customers.service";
 import { CreateCustomerDto } from "./dto/create-customer.dto";
@@ -27,5 +28,10 @@ export class CustomersController {
     @Body() updateCustomerDto: UpdateCustomerDto,
   ): Promise<Customers> {
     return this.customersService.update(customerId, updateCustomerDto);
+  }
+
+  @Delete(":id")
+  deleteCustomer(@Param("id") customerId: string): Promise<void> {
+    return this.customersService.delete(customerId);
   }
 }
