@@ -106,23 +106,25 @@ export class OrderService {
     }
 
     if (updates.orderStatus) {
-      // order can not move to DISPATCHED, DELIVERED, CANCELLED, RETURNED if ORDER is in CREATED or IN PROGRESS
-      // only COMPLETED orders can move to DISPATCHED, DELIVERED, CANCELLED, RETURNED
+      // order can not move to COMPLETED, DISPATCHED, DELIVERED, CANCELLED, RETURNED if ORDER is in CREATED or IN PROGRESS
+      // only IN PROGRESS orders can move to COMPLETED, DISPATCHED, DELIVERED, CANCELLED, RETURNED
 
-      if (order.orderStatus === "CREATED" || order.orderStatus === "IN PROGRESS") {
+      if (order.orderStatus === "CREATED") {
         if (
+          updates.orderStatus === "COMPLETED" ||
           updates.orderStatus === "DISPATCHED" ||
           updates.orderStatus === "DELIVERED" ||
           updates.orderStatus === "CANCELLED" ||
           updates.orderStatus === "RETURNED"
         ) {
             throw new BadRequestException(
-              "Order must be COMPLETED before changing status to DISPATCHED, DELIVERED, CANCELLED, or RETURNED",
+              "Order must be IN PROGRESS before changing status to COMPLETED, DISPATCHED, DELIVERED, CANCELLED, or RETURNED",
             );
         }
       }
 
       if (
+        order.orderStatus === "IN PROGRESS" ||
         order.orderStatus === "COMPLETED" ||
         order.orderStatus === "DISPATCHED" ||
         order.orderStatus === "DELIVERED" ||
@@ -131,10 +133,9 @@ export class OrderService {
       ) {
         if (
           updates.orderStatus === "CREATED" ||
-          updates.orderStatus === "IN PROGRESS"
         ) {
           throw new BadRequestException(
-            "Order already completed. Can not change status to CREATED or IN PROGRESS",
+            "Order already in progress. Can not change status to CREATED",
           );
         }
       }
@@ -157,7 +158,7 @@ export class OrderService {
     );
 
     if (updates.orderStatus) {
-      if (updates.orderStatus === "COMPLETED") {
+      if (updates.orderStatus === "IN PROGRESS") {
         const items = order.items;
         for (const item of items) {
           const inventoryItem = await this.inventoryService.findOne(item.id);
