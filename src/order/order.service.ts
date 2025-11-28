@@ -132,7 +132,7 @@ export class OrderService {
         order.orderStatus === "RETURNED"
       ) {
         if (
-          updates.orderStatus === "CREATED" ||
+          updates.orderStatus === "CREATED"
         ) {
           throw new BadRequestException(
             "Order already in progress. Can not change status to CREATED",
