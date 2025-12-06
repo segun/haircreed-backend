@@ -9,6 +9,12 @@ export class BackupSchedulerService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly backupService: BackupService) {}
 
   async onModuleInit() {
+    const runBackupEnv = process.env.RUN_BACKUP;
+    if (runBackupEnv && runBackupEnv.toLowerCase() === 'false') {
+      this.logger.log('Backup scheduler is disabled via RUN_BACKUP=false');
+      return;
+    }
+
     this.logger.log('Starting backup scheduler (runs every 5 minutes)');
 
     // Run an immediate backup on startup (don't await to avoid blocking bootstrap)
