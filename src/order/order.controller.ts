@@ -4,6 +4,7 @@ import {
   Post,
   Patch,
   Param,
+  Delete,
 } from "@nestjs/common";
 import { OrderService } from "./order.service";
 import { CreateOrderDto,  } from "./dto/create-order.dto";
@@ -27,5 +28,12 @@ export class OrderController {
     @Body() updateOrderDto: UpdateOrderDto,
   ): Promise<Orders> {
     return this.orderService.update(id, updateOrderDto);
+  }
+
+  @Delete(":id")
+  deleteByOrderNumber(
+    @Param("id") id: string,
+  ): Promise<{ deletedOrderId: string }> {
+    return this.orderService.delete(id);
   }
 }

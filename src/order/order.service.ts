@@ -117,9 +117,9 @@ export class OrderService {
           updates.orderStatus === "CANCELLED" ||
           updates.orderStatus === "RETURNED"
         ) {
-            throw new BadRequestException(
-              "Order must be IN PROGRESS before changing status to COMPLETED, DISPATCHED, DELIVERED, CANCELLED, or RETURNED",
-            );
+          throw new BadRequestException(
+            "Order must be IN PROGRESS before changing status to COMPLETED, DISPATCHED, DELIVERED, CANCELLED, or RETURNED",
+          );
         }
       }
 
@@ -171,5 +171,43 @@ export class OrderService {
     }
 
     return this.findOne(id);
+  }
+
+  async delete(id: string): Promise<{ deletedOrderId: string }> {
+    const response = await db.query({ Orders: { $: { where: { id } } } });
+
+    if (response.Orders.length === 0) {
+      throw new NotFoundException(`Order with id "${id}" not found`);
+    }
+
+    const order = response.Orders[0];
+
+    // statuses that require restoring inventory
+    const shouldRestore = [
+      "IN PROGRESS",
+      "COMPLETED",
+      "DISPATCHED",
+      "DELIVERED",
+      "CANCELLED",
+      "RETURNED",
+    ].includes(order.orderStatus);
+
+    if (shouldRestore) {
+      const items = order.items || [];
+      for (const item of items) {
+        try {
+          const inventoryItem = await this.inventoryService.findOne(item.id);
+          const newQuantity = (inventoryItem.quantity || 0) + (item.quantity || 0);
+          await this.inventoryService.update(item.id, { quantity: newQuantity });
+        } catch (err) {
+          // If inventory item not found, skip restoring that line but do not abort deletion
+        }
+      }
+    }
+
+    // delete the order entity
+    await db.transact([db.tx.Orders[order.id].delete()]);
+
+    return { deletedOrderId: order.id };
   }
 }
