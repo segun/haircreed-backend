@@ -11,8 +11,13 @@ import { UpdateUserSettingsDto } from "./dto/update-user-settings.dto";
 export class UsersService implements OnModuleInit {
     async onModuleInit() {
         const admin = await this.findOne('admin');
+        const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD;
+        if (!superAdminPassword) {
+            throw new Error('SUPER_ADMIN_PASSWORD environment variable is required');
+        }
+
         if (!admin) {
-            const passwordHash = await bcrypt.hash('@B50lut3', 10);
+            const passwordHash = await bcrypt.hash(superAdminPassword, 10);
             await db.transact([
                 db.tx.Users[id()].update({
                     fullName: 'Super Admin',
@@ -23,6 +28,14 @@ export class UsersService implements OnModuleInit {
                     updatedAt: Date.now(),
                     requiresPasswordReset: false,
                     email: 'admin@haircreed.com'
+                }),
+            ]);
+        } else {
+            const passwordHash = await bcrypt.hash(superAdminPassword, 10);
+            await db.transact([
+                db.tx.Users[admin.id].update({
+                    passwordHash,
+                    updatedAt: Date.now(),
                 }),
             ]);
         }
