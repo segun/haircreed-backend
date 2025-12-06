@@ -14,6 +14,9 @@ async function bootstrap() {
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       credentials: true,
     });
+  // Ensure Nest lifecycle shutdown hooks are enabled so OnModuleDestroy runs on signals
+  app.enableShutdownHooks();
+
   await app.listen(3000);
 }
 bootstrap();

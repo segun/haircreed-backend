@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import db from '../instant';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
 import { MongoClient } from 'mongodb';
 
 interface BackupData {
@@ -28,47 +25,14 @@ interface BackupData {
   };
 }
 
-interface EncryptedBackup {
-  encrypted: string;
-  iv: string;
-  authTag: string;
-  algorithm: string;
-}
 
 @Injectable()
 export class BackupService {
-  /**
-   * Encrypts data using AES-256-GCM
-   */
-  private encrypt(data: string, password: string): EncryptedBackup {
-    // Derive a 256-bit key from the password using SHA-256
-    const key = crypto.createHash('sha256').update(password).digest();
-
-    // Generate a random initialization vector
-    const iv = crypto.randomBytes(16);
-
-    // Create cipher
-    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-
-    // Encrypt the data
-    let encrypted = cipher.update(data, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-
-    // Get the authentication tag
-    const authTag = cipher.getAuthTag();
-
-    return {
-      encrypted,
-      iv: iv.toString('hex'),
-      authTag: authTag.toString('hex'),
-      algorithm: 'aes-256-gcm',
-    };
-  }
+  // Encryption removed; backups are stored only in MongoDB
 
   async createBackup(): Promise<{
     success: boolean;
     filename: string;
-    filePath: string;
     statistics: {
       AppSettings: number;
       Users: number;
@@ -82,13 +46,7 @@ export class BackupService {
     };
   }> {
     try {
-      // Check for backup password
-      const backupPassword = process.env.BACKUP_PASSWORD;
-      if (!backupPassword) {
-        throw new Error(
-          'BACKUP_PASSWORD environment variable is not set. Please add it to your .env file.',
-        );
-      }
+      // Backups are written only to MongoDB. No local encryption or disk writes.
 
       // Query all entities with their links
       const result = await db.query({
@@ -220,17 +178,7 @@ export class BackupService {
         links,
       };
 
-      // Encrypt the backup data
-      const dataString = JSON.stringify(backupData);
-      const encryptedData = this.encrypt(dataString, backupPassword);
-
-      // Create backup directory if it doesn't exist
-      const backupDir = path.join(process.cwd(), 'backup');
-      if (!fs.existsSync(backupDir)) {
-        fs.mkdirSync(backupDir, { recursive: true });
-      }
-
-      // Generate filename with date and time
+      // Generate filename with date and time (used for Mongo record)
       const now = new Date();
       const filename = `backup_${now.getFullYear()}-${String(
         now.getMonth() + 1,
@@ -239,10 +187,6 @@ export class BackupService {
       ).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(
         now.getSeconds(),
       ).padStart(2, '0')}.json`;
-      const filePath = path.join(backupDir, filename);
-
-      // Write encrypted backup file
-      fs.writeFileSync(filePath, JSON.stringify(encryptedData, null, 2));
 
       // write the un-encrypted backup file to mongo db. use MONGO_URI from env variables
       try {
@@ -309,7 +253,6 @@ export class BackupService {
       return {
         success: true,
         filename,
-        filePath,
         statistics: {
           AppSettings: entities.AppSettings.length,
           Users: entities.Users.length,
