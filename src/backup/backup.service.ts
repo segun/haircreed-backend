@@ -3,6 +3,7 @@ import db from '../instant';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { MongoClient } from 'mongodb';
 
 interface BackupData {
   timestamp: number;
@@ -243,6 +244,68 @@ export class BackupService {
       // Write encrypted backup file
       fs.writeFileSync(filePath, JSON.stringify(encryptedData, null, 2));
 
+      // write the un-encrypted backup file to mongo db. use MONGO_URI from env variables
+      try {
+        const mongoUri = process.env.MONGO_URI;
+        console.log('MONGO_URI:', mongoUri);
+        if (mongoUri) {
+          let client: MongoClient | null = null;
+          try {
+            client = new MongoClient(mongoUri as string, {} as any);
+            await client.connect();
+
+            // try to derive db name from URI, fallback to MONGO_DB or default
+            let dbName: string | undefined;
+            try {
+              const parsed = new URL(mongoUri as string);
+              const pathname = parsed.pathname || '';
+              if (pathname && pathname !== '/') dbName = pathname.replace(/^\//, '');
+            } catch (e) {
+              // ignore parse errors
+            }
+            // Prefer explicit MONGO_DB_NAME env var, then parsed name, then legacy MONGO_DB, then default
+            dbName = process.env.MONGO_DB_NAME || dbName || process.env.MONGO_DB || 'haircreed_backups';
+
+            console.log('Using MongoDB database name for backup:', dbName);
+            
+            const mongoDb = client.db(dbName);
+            const backups = mongoDb.collection('backups');
+
+            const stats = {
+              AppSettings: entities.AppSettings.length,
+              Users: entities.Users.length,
+              AttributeCategory: entities.AttributeCategory.length,
+              AttributeItem: entities.AttributeItem.length,
+              Orders: entities.Orders.length,
+              Customers: entities.Customers.length,
+              Suppliers: entities.Suppliers.length,
+              InventoryItems: entities.InventoryItems.length,
+              CustomerAddress: entities.CustomerAddress.length,
+            };
+
+            await backups.insertOne({
+              filename,
+              timestamp: backupData.timestamp,
+              statistics: stats,
+              data: backupData,
+              createdAt: new Date(),
+            });
+          } catch (err) {
+            // Do not fail the whole backup if mongo write fails; log for operator
+            // eslint-disable-next-line no-console
+            console.error('Failed to write backup to MongoDB:', (err as any)?.message || err);
+          } finally {
+            if (client) await client.close();
+          }
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn('MONGO_URI not set; skipping mongo backup insertion.');
+        }
+      } catch (err) {
+        // swallow any unexpected errors writing to mongo to avoid breaking backup creation
+        // eslint-disable-next-line no-console
+        console.error('Unexpected error while attempting to write backup to MongoDB:', (err as any)?.message || err);
+      }
       return {
         success: true,
         filename,
