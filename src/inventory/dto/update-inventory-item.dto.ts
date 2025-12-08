@@ -22,4 +22,11 @@ export class UpdateInventoryItemDto {
   @IsString({ each: true })
   @IsOptional()
   attributeIds?: string[];
+
+  @IsString()
+  userId: string;
+
+  @IsString()
+  @IsOptional()
+  origin?: string;
 }

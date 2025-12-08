@@ -15,4 +15,11 @@ export class CreateInventoryItemDto {
   @IsArray()
   @IsString({ each: true })
   attributeIds: string[];
+
+  @IsString()
+  userId: string;
+
+  @IsString()
+  @IsOptional()
+  origin?: string;
 }

@@ -5,6 +5,7 @@ import { CreateOrderDto } from "./dto/create-order.dto";
 import { Orders } from "../types";
 import { UpdateOrderDto } from "./dto/update-order.dto";
 import { InventoryService } from "../inventory/inventory.service";
+import { Audit } from "../constants/audit";
 
 @Injectable()
 export class OrderService {
@@ -84,7 +85,7 @@ export class OrderService {
     if (customerChanged && updates.customerId) {
       // Query existing customer link
       const existingOrder = await db.query({
-        Orders: { $: { where: { id } }, customer: {} },
+        Orders: { $: { where: { id } }, customer: {}, posOperator: {} },
       });
 
       const existingCustomerId = existingOrder.Orders[0]?.customer?.id;
@@ -165,6 +166,8 @@ export class OrderService {
           const newQuantity = inventoryItem.quantity - item.quantity;
           await this.inventoryService.update(item.id, {
             quantity: newQuantity,
+            userId: userId,
+            origin: Audit.ORIGIN.UPDATE_ORDER,
           });
         }
       }
@@ -174,7 +177,7 @@ export class OrderService {
   }
 
   async delete(id: string): Promise<{ deletedOrderId: string }> {
-    const response = await db.query({ Orders: { $: { where: { id } } } });
+    const response = await db.query({ Orders: { $: { where: { id } }, posOperator: {} } });
 
     if (response.Orders.length === 0) {
       throw new NotFoundException(`Order with id "${id}" not found`);
@@ -198,7 +201,7 @@ export class OrderService {
         try {
           const inventoryItem = await this.inventoryService.findOne(item.id);
           const newQuantity = (inventoryItem.quantity || 0) + (item.quantity || 0);
-          await this.inventoryService.update(item.id, { quantity: newQuantity });
+          await this.inventoryService.update(item.id, { quantity: newQuantity, userId: order.posOperator.id || "", origin: Audit.ORIGIN.DELETE_ORDER });
         } catch (err) {
           // If inventory item not found, skip restoring that line but do not abort deletion
         }

@@ -10,9 +10,15 @@ export type AttributeCategory = InstaQLEntity<Schema, 'AttributeCategory'> & {
   items: AttributeItem[];
 };
 export type Supplier = InstaQLEntity<Schema, 'Suppliers'> & {};
+export type InventoryAudit = InstaQLEntity<Schema, 'InventoryAudits'> & {
+  inventoryItem?: InventoryItem;
+  userFullname?: string | null;
+};
+
 export type InventoryItem = InstaQLEntity<Schema, 'InventoryItems'> & {
   supplier: Supplier;
   attributes: AttributeItem[];
+  audits?: InventoryAudit[];
 };
 
 export type AppSettings = {
@@ -24,7 +30,10 @@ export type Settings = {
     vatRate: number;
 }
 
-export type Orders = InstaQLEntity<Schema, 'Orders'>;
+export type Orders = InstaQLEntity<Schema, 'Orders'> & {
+  posOperator?: User;
+};
+
 export type CustomerAddress = InstaQLEntity<Schema, 'CustomerAddress'>;
 export type Customers = InstaQLEntity<Schema, 'Customers'> & {
     orders: Orders[];

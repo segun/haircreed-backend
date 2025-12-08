@@ -28,9 +28,13 @@ export class InventoryController {
     return this.inventoryService.update(id, updateInventoryItemDto);
   }
 
-  @Delete(':id')
+  @Delete(':id/:userId/:origin?')
   @HttpCode(204)
-  remove(@Param('id') id: string) {
-    return this.inventoryService.remove(id);
+  remove(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Param('origin') origin?: string,
+  ) {
+    return this.inventoryService.remove(id, userId, origin);
   }
 }

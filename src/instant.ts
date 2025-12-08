@@ -68,6 +68,16 @@ export const _schema = i.schema({
       costPrice: i.number().optional(),
       lastStockedAt: i.number().indexed(),
     }),
+    InventoryAudits: i.entity({
+      inventoryItemId: i.string().indexed(),
+      action: i.string().indexed(),
+      userId: i.string().optional(),
+      userFullname: i.string().optional(),
+      details: i.json().optional(),
+      quantityBefore: i.number().optional(),
+      quantityAfter: i.number().optional(),
+      createdAt: i.number().indexed(),
+    }),
     CustomerAddress: i.entity({
       address: i.string(),
       isPrimary: i.boolean(),
@@ -94,6 +104,10 @@ export const _schema = i.schema({
     InventoryItemAttribute: {
       forward: { on: "InventoryItems", has: "many", label: "attributes" },
       reverse: { on: "AttributeItem", has: "many", label: "inventoryItems" },
+    },
+    InventoryAuditInventoryItem: {
+      forward: { on: "InventoryAudits", has: "one", label: "inventoryItem" },
+      reverse: { on: "InventoryItems", has: "many", label: "audits" },
     },
     CustomerCustomerAddresses: {
       forward: { on: "Customers", has: "many", label: "addresses" },
