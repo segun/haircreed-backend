@@ -1,15 +1,19 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { id } from "@instantdb/admin";
 import db from "../instant";
 import { CreateOrderDto } from "./dto/create-order.dto";
-import { Orders } from "../types";
+import { Orders, Wigger } from "../types";
 import { UpdateOrderDto } from "./dto/update-order.dto";
 import { InventoryService } from "../inventory/inventory.service";
 import { Audit } from "../constants/audit";
 
 @Injectable()
 export class OrderService {
-  constructor(private inventoryService: InventoryService) { }
+  constructor(private inventoryService: InventoryService) {}
 
   async findOne(id: string): Promise<Orders> {
     const findOneResponse = await db.query({
@@ -20,6 +24,37 @@ export class OrderService {
       throw new NotFoundException(`Order with ID "${id}" not found`);
     }
     return findOneResponse.Orders[0];
+  }
+
+  private async findOrCreateWigger(
+    wiggerName: string | undefined,
+  ): Promise<Wigger | null> {
+    if (!wiggerName || wiggerName.trim() === "") {
+      return null;
+    }
+
+    // Try to find existing wigger by name
+    const existingWiggerResponse = await db.query({
+      Wigger: { $: { where: { name: wiggerName } } },
+    });
+
+    if (existingWiggerResponse.Wigger.length > 0) {
+      return existingWiggerResponse.Wigger[0];
+    }
+
+    // Create new wigger if not found
+    const newWiggerId = id();
+    await db.transact([
+      db.tx.Wigger[newWiggerId].create({
+        name: wiggerName,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }),
+    ]);
+
+    return db
+      .query({ Wigger: { $: { where: { id: newWiggerId } } } })
+      .then((response) => response.Wigger[0]);
   }
 
   async create(createOrderDto: CreateOrderDto): Promise<Orders> {
@@ -74,6 +109,18 @@ export class OrderService {
       ]);
     }
 
+    // Handle wigger - find or create and link
+    if (createOrderDto.wiggerName) {
+      const wigger = await this.findOrCreateWigger(createOrderDto.wiggerName);
+      if (wigger) {
+        await db.transact([
+          db.tx.Orders[newId].link({
+            wigger: wigger.id,
+          }),
+        ]);
+      }
+    }
+
     return this.findOne(newId);
   }
 
@@ -106,6 +153,37 @@ export class OrderService {
       delete updates.customerId;
     }
 
+    // Handle wigger change    
+    if (updates.wigger !== undefined) {
+      const wiggersResponse = await db.query({
+        Wigger: { $: {
+          where: {
+            name: updates.wigger,
+          }
+        }},
+      });
+
+      if(wiggersResponse && wiggersResponse.Wigger && wiggersResponse.Wigger.length > 0) {
+        const existingWiggerId = wiggersResponse.Wigger[0].id;
+      
+        await db.transact([
+          db.tx.Orders[id].unlink({ wigger: existingWiggerId }),
+        ]);
+      }
+
+      // Find or create new wigger and link
+      const wigger = await this.findOrCreateWigger(
+        updates.wigger as string,
+      );
+
+      if (wigger) {
+        await db.transact([db.tx.Orders[id].link({ wigger: wigger.id })]);
+      }
+
+      // Remove wiggerName from updates to avoid trying to update it as a field
+      delete updates.wigger;
+    }
+
     if (updates.orderStatus) {
       // order can not move to COMPLETED, DISPATCHED, DELIVERED, CANCELLED, RETURNED if ORDER is in CREATED or IN PROGRESS
       // only IN PROGRESS orders can move to COMPLETED, DISPATCHED, DELIVERED, CANCELLED, RETURNED
@@ -132,9 +210,7 @@ export class OrderService {
         order.orderStatus === "CANCELLED" ||
         order.orderStatus === "RETURNED"
       ) {
-        if (
-          updates.orderStatus === "CREATED"
-        ) {
+        if (updates.orderStatus === "CREATED") {
           throw new BadRequestException(
             "Order already in progress. Can not change status to CREATED",
           );
@@ -177,7 +253,9 @@ export class OrderService {
   }
 
   async delete(id: string): Promise<{ deletedOrderId: string }> {
-    const response = await db.query({ Orders: { $: { where: { id } }, posOperator: {} } });
+    const response = await db.query({
+      Orders: { $: { where: { id } }, posOperator: {} },
+    });
 
     if (response.Orders.length === 0) {
       throw new NotFoundException(`Order with id "${id}" not found`);
@@ -200,8 +278,13 @@ export class OrderService {
       for (const item of items) {
         try {
           const inventoryItem = await this.inventoryService.findOne(item.id);
-          const newQuantity = (inventoryItem.quantity || 0) + (item.quantity || 0);
-          await this.inventoryService.update(item.id, { quantity: newQuantity, userId: order.posOperator.id || "", origin: Audit.ORIGIN.DELETE_ORDER });
+          const newQuantity =
+            (inventoryItem.quantity || 0) + (item.quantity || 0);
+          await this.inventoryService.update(item.id, {
+            quantity: newQuantity,
+            userId: order.posOperator.id || "",
+            origin: Audit.ORIGIN.DELETE_ORDER,
+          });
         } catch (err) {
           // If inventory item not found, skip restoring that line but do not abort deletion
         }

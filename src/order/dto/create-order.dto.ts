@@ -6,6 +6,7 @@ export class CreateOrderDto {
     items: { id: string; quantity: number; price: number }[];
     status: 'CREATED' | 'IN PROGRESS' | 'COMPLETED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED' | 'RETURNED';
     notes?: string;
+    wiggerName?: string;
     orderType: 'pickup' | 'delivery';
     deliveryCharge: number;
     discount: number;

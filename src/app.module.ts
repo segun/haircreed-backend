@@ -13,6 +13,7 @@ import { OrderModule } from "./order/order.module";
 import { CustomersModule } from "./customers/customers.module";
 import { DashboardModule } from './dashboard/dashboard.module';
 import { BackupModule } from './backup/backup.module';
+import { WiggerModule } from './wigger/wigger.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { BackupModule } from './backup/backup.module';
     PdfModule,    
     DashboardModule,
     BackupModule,
+    WiggerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
