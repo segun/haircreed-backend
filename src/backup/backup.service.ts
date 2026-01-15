@@ -14,6 +14,7 @@ interface BackupData {
     Suppliers: any[];
     InventoryItems: any[];
     CustomerAddress: any[];
+    Wigger: any[];
   };
   links: {
     AttributeCategoryItem: Array<{ itemId: string; categoryId: string }>;
@@ -22,6 +23,7 @@ interface BackupData {
     InventoryItemSupplier: Array<{ inventoryItemId: string; supplierId: string }>;
     InventoryItemAttribute: Array<{ inventoryItemId: string; attributeItemId: string }>;
     CustomerCustomerAddresses: Array<{ customerId: string; addressId: string }>;
+    WiggerOrder: Array<{ orderId: string; wiggerId: string }>;
   };
 }
 
@@ -43,6 +45,7 @@ export class BackupService {
       Suppliers: number;
       InventoryItems: number;
       CustomerAddress: number;
+      Wigger: number;
     };
   }> {
     try {
@@ -54,11 +57,12 @@ export class BackupService {
         Users: {},
         AttributeCategory: { items: {} },
         AttributeItem: { category: {}, inventoryItems: {} },
-        Orders: { customer: {}, posOperator: {} },
+        Orders: { customer: {}, posOperator: {}, wigger: {} },
         Customers: { orders: {}, addresses: {} },
         Suppliers: { inventoryItems: {} },
         InventoryItems: { supplier: {}, attributes: {} },
         CustomerAddress: { customer: {} },
+        Wigger: { orders: {} },
       });
 
       // Extract entities (remove linked data for clean entity storage)
@@ -72,7 +76,7 @@ export class BackupService {
           ({ category, inventoryItems, ...rest }) => rest,
         ),
         Orders: (result.Orders || []).map(
-          ({ customer, posOperator, ...rest }) => rest,
+          ({ customer, posOperator, wigger, ...rest }) => rest,
         ),
         Customers: (result.Customers || []).map(
           ({ orders, addresses, ...rest }) => rest,
@@ -85,6 +89,9 @@ export class BackupService {
         ),
         CustomerAddress: (result.CustomerAddress || []).map(
           ({ customer, ...rest }) => rest,
+        ),
+        Wigger: (result.Wigger || []).map(
+          ({ orders, ...rest }) => rest,
         ),
       };
 
@@ -107,6 +114,10 @@ export class BackupService {
         CustomerCustomerAddresses: [] as Array<{
           customerId: string;
           addressId: string;
+        }>,
+        WiggerOrder: [] as Array<{
+          orderId: string;
+          wiggerId: string;
         }>,
       };
 
@@ -172,6 +183,16 @@ export class BackupService {
         }
       });
 
+      // Extract WiggerOrder links
+      result.Orders?.forEach((order: any) => {
+        if (order.wigger) {
+          links.WiggerOrder.push({
+            orderId: order.id,
+            wiggerId: order.wigger.id,
+          });
+        }
+      });
+
       const backupData: BackupData = {
         timestamp: Date.now(),
         entities,
@@ -225,6 +246,7 @@ export class BackupService {
               Suppliers: entities.Suppliers.length,
               InventoryItems: entities.InventoryItems.length,
               CustomerAddress: entities.CustomerAddress.length,
+              Wigger: entities.Wigger.length,
             };
 
             await backups.insertOne({
@@ -262,6 +284,7 @@ export class BackupService {
           Customers: entities.Customers.length,
           Suppliers: entities.Suppliers.length,
           InventoryItems: entities.InventoryItems.length,
+          Wigger: entities.Wigger.length,
           CustomerAddress: entities.CustomerAddress.length,
         },
       };

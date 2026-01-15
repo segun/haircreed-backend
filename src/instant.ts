@@ -83,6 +83,11 @@ export const _schema = i.schema({
       isPrimary: i.boolean(),
       createdAt: i.number(),
     }),
+    Wigger: i.entity({
+      name: i.string().unique(),
+      createdAt: i.number(),
+      updatedAt: i.number(),
+    }),
   },
   links: {
     AttributeCategoryItem: {
@@ -112,7 +117,11 @@ export const _schema = i.schema({
     CustomerCustomerAddresses: {
       forward: { on: "Customers", has: "many", label: "addresses" },
       reverse: { on: "CustomerAddress", has: "one", label: "customer" },
-    }, 
+    },
+    WiggerOrder: {
+      forward: { on: "Orders", has: "one", label: "wigger" },
+      reverse: { on: "Wigger", has: "many", label: "orders" },
+    },
   },
 });
 

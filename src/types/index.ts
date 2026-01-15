@@ -30,8 +30,13 @@ export type Settings = {
     vatRate: number;
 }
 
+export type Wigger = InstaQLEntity<Schema, 'Wigger'> & {
+  orders?: Orders[];
+};
+
 export type Orders = InstaQLEntity<Schema, 'Orders'> & {
   posOperator?: User;
+  wigger?: Wigger;
 };
 
 export type CustomerAddress = InstaQLEntity<Schema, 'CustomerAddress'>;
