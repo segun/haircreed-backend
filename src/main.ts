@@ -43,23 +43,33 @@ async function bootstrap() {
   // strict) or whose Origin is present but not in the allowlist. This makes
   // origin enforcement apply to curl and other non-browser clients.
   app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const origin = req.headers.origin as string | undefined;
+  const origin = req.headers.origin as string | undefined;
+  const host = req.headers.host;
 
-    console.log(`Request Origin: ${origin || 'none'}`);
-    
-    if (!origin) {
-      if (STRICT_ORIGIN) {
-        return res.status(403).json({ message: 'OHR' });
-      }
-      return next();
+  console.log(`Request Origin: ${origin || 'none'}, Host: ${host}`);
+
+  // Preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    if (origin && !allowedOrigins.includes(origin)) {
+      return res.status(403).json({ message: 'ONA' });
     }
+    res.header('Access-Control-Allow-Origin', origin || `https://${host}`);
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    return res.sendStatus(204);
+  }
 
+  // If origin is present → cross-origin request
+  if (origin) {
     if (!allowedOrigins.includes(origin)) {
       return res.status(403).json({ message: 'ONA' });
     }
-
     return next();
-  });
+  }
+
+  // No origin → assume same-origin → allow
+  return next();
+});
 
   // Enable CORS for browsers. Keep credentials and allowed methods.
   app.enableCors({
