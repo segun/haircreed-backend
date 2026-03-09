@@ -256,6 +256,9 @@ export class BackupService {
               data: backupData,
               createdAt: new Date(),
             });
+
+            // Enforce backup retention: keep only the last N backups
+            await this.enforceBackupRetention(mongoDb);
           } catch (err) {
             // Do not fail the whole backup if mongo write fails; log for operator
             // eslint-disable-next-line no-console
@@ -290,6 +293,76 @@ export class BackupService {
       };
     } catch (error) {
       throw error;
+    }
+  }
+
+  /**
+   * Parse BACKUP_MAX_COUNT env var with validation and fallback to default (120).
+   */
+  private getMaxBackupCount(): number {
+    const envValue = process.env.BACKUP_MAX_COUNT;
+    if (!envValue) {
+      return 120; // default
+    }
+    const parsed = parseInt(envValue, 10);
+    if (!isNaN(parsed) && parsed >= 1) {
+      return parsed;
+    }
+    // Invalid value, log and fallback
+    console.warn(
+      `Invalid BACKUP_MAX_COUNT="${envValue}" (must be >= 1); using default 120`,
+    );
+    return 120;
+  }
+
+  /**
+   * Enforce backup retention by deleting backups older than the last N records.
+   * This is best-effort: if retention fails, only logs the error and does not throw.
+   */
+  private async enforceBackupRetention(mongoDb: any): Promise<void> {
+    const maxBackups = this.getMaxBackupCount();
+    const backups = mongoDb.collection('backups');
+
+    try {
+      const count = await backups.countDocuments();
+
+      if (count <= maxBackups) {
+        // Already within limit
+        return;
+      }
+
+      // Query the newest maxBackups records sorted by timestamp descending
+      const backupsToKeep = await backups
+        .find({})
+        .sort({ timestamp: -1 })
+        .limit(maxBackups)
+        .toArray();
+
+      if (backupsToKeep.length === 0) {
+        // Safety check: no records to keep (shouldn't happen)
+        return;
+      }
+
+      // Get the oldest timestamp of records to keep
+      const oldestToKeepId = backupsToKeep[backupsToKeep.length - 1]._id;
+
+      // Delete all backups older than the last maxBackups (using _id comparison as tiebreaker)
+      const deleteResult = await backups.deleteMany({
+        _id: { $lt: oldestToKeepId },
+      });
+
+      if (deleteResult.deletedCount > 0) {
+        console.log(
+          `Backup retention: deleted ${deleteResult.deletedCount} backup(s), ` +
+            `keeping ${backupsToKeep.length}/${maxBackups}`,
+        );
+      }
+    } catch (err) {
+      // Retention failure is non-fatal; log and continue
+      console.error(
+        'Backup retention cleanup failed:',
+        (err as any)?.message || err,
+      );
     }
   }
 }

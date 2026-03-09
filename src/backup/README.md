@@ -68,6 +68,39 @@ curl -X POST http://localhost:3000/backup
 - ✅ Generates timestamped filename
 - ✅ Returns detailed statistics
 - ✅ Creates backup directory automatically
+- ✅ **Automatic retention**: keeps only the last N backups, deletes older ones
+
+## Backup Retention
+
+Backups are stored in MongoDB and automatically pruned to prevent the database from growing indefinitely.
+
+### Configuration
+
+Use the `BACKUP_MAX_COUNT` environment variable to control how many recent backups to keep:
+
+```bash
+# .env
+BACKUP_MAX_COUNT=120  # Keep the last 120 backups (default: 120)
+```
+
+**Behavior:**
+- After each successful backup creation (both scheduled and manual), the system enforces the retention limit.
+- Only the most recent `BACKUP_MAX_COUNT` backups (by timestamp) are retained.
+- Older backups are automatically deleted from MongoDB.
+- If the backup count is already within the limit, no deletion occurs.
+- Retention cleanup failures are logged but do not fail the overall backup operation.
+- Invalid `BACKUP_MAX_COUNT` values (non-numeric, < 1) fall back to the default of 120 with a warning log.
+
+### Storage
+
+Backups are stored in the MongoDB collection `backups` (in the database specified by `MONGO_DB_NAME` or `MONGO_URI`).
+
+Each backup document contains:
+- `filename`: Timestamped backup identifier
+- `timestamp`: Milliseconds since epoch (used for ordering)
+- `createdAt`: MongoDB Date object (insertion time)
+- `statistics`: Count of each entity type
+- `data`: Full backup payload (entities and links)
 
 ## Security Considerations
 
