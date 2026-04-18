@@ -15,10 +15,26 @@ export type InventoryAudit = InstaQLEntity<Schema, 'InventoryAudits'> & {
   userFullname?: string | null;
 };
 
+export type ProductStockAudit = InstaQLEntity<Schema, 'ProductStockAudits'> & {
+  product?: Product;
+  userFullname?: string | null;
+};
+
+export type ProductUsageAudit = InstaQLEntity<Schema, 'ProductUsageAudits'> & {
+  product?: Product;
+  order?: Orders;
+  userFullname?: string | null;
+};
+
 export type InventoryItem = InstaQLEntity<Schema, 'InventoryItems'> & {
   supplier: Supplier;
   attributes: AttributeItem[];
   audits?: InventoryAudit[];
+};
+
+export type Product = InstaQLEntity<Schema, 'Products'> & {
+  stockAudits?: ProductStockAudit[];
+  usageAudits?: ProductUsageAudit[];
 };
 
 export type AppSettings = {
@@ -37,6 +53,7 @@ export type Wigger = InstaQLEntity<Schema, 'Wigger'> & {
 export type Orders = InstaQLEntity<Schema, 'Orders'> & {
   posOperator?: User;
   wigger?: Wigger;
+  productUsageAudits?: ProductUsageAudit[];
 };
 
 export type CustomerAddress = InstaQLEntity<Schema, 'CustomerAddress'>;

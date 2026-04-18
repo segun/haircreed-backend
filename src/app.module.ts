@@ -14,6 +14,7 @@ import { CustomersModule } from "./customers/customers.module";
 import { DashboardModule } from './dashboard/dashboard.module';
 import { BackupModule } from './backup/backup.module';
 import { WiggerModule } from './wigger/wigger.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { WiggerModule } from './wigger/wigger.module';
     DashboardModule,
     BackupModule,
     WiggerModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

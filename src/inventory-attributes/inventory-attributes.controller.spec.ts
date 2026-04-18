@@ -11,7 +11,6 @@ describe('InventoryAttributesController', () => {
   let service: InventoryAttributesService;
 
   const mockInventoryAttributesService = {
-    getAllCategories: jest.fn(),
     createCategory: jest.fn(),
     deleteCategory: jest.fn(),
     createItem: jest.fn(),
@@ -38,16 +37,6 @@ describe('InventoryAttributesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('getAllCategories', () => {
-    it('should return an array of categories', async () => {
-      const result = [{ id: '1', title: 'Category 1' }];
-      mockInventoryAttributesService.getAllCategories.mockResolvedValue(result);
-
-      expect(await controller.getAllCategories()).toBe(result);
-      expect(service.getAllCategories).toHaveBeenCalled();
-    });
   });
 
   describe('createCategory', () => {

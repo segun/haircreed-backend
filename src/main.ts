@@ -46,8 +46,6 @@ async function bootstrap() {
   const origin = req.headers.origin as string | undefined;
   const host = req.headers.host;
 
-  console.log(`Request Origin: ${origin || 'none'}, Host: ${host}`);
-
   // Preflight OPTIONS requests
   if (req.method === 'OPTIONS') {
     if (origin && !allowedOrigins.includes(origin)) {
