@@ -78,6 +78,6 @@ async function bootstrap() {
   // Ensure Nest lifecycle shutdown hooks are enabled so OnModuleDestroy runs on signals
   app.enableShutdownHooks();
 
-  await app.listen(3000);
+  await app.listen(3001);
 }
 bootstrap();
