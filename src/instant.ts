@@ -98,7 +98,7 @@ export const _schema = i.schema({
     }),
     ProductUsageAudits: i.entity({
       productId: i.string().indexed(),
-      orderId: i.string().indexed(),
+      orderId: i.string().indexed().optional(),
       action: i.string().indexed(),
       quantityUsed: i.number(),
       userId: i.string().optional(),

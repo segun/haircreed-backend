@@ -7,7 +7,7 @@ import { ProductUsageAudit } from '../types';
 export class ProductsUsageAuditService {
   async recordAudit(payload: {
     productId: string;
-    orderId: string;
+    orderId?: string;
     action: string;
     quantityUsed: number;
     userId: string;
@@ -17,13 +17,16 @@ export class ProductsUsageAuditService {
 
     const createPayload: any = {
       productId: payload.productId,
-      orderId: payload.orderId,
       action: payload.action,
       quantityUsed: payload.quantityUsed,
       userId: payload.userId ?? null,
       userFullname: null,
       createdAt: now,
     };
+
+    if (payload.orderId) {
+      createPayload.orderId = payload.orderId;
+    }
 
     if (payload.userId) {
       try {
@@ -35,11 +38,16 @@ export class ProductsUsageAuditService {
       }
     }
 
-    await db.transact([
+    const tx = [
       db.tx.ProductUsageAudits[newId].create(createPayload),
       db.tx.ProductUsageAudits[newId].link({ product: payload.productId }),
-      db.tx.ProductUsageAudits[newId].link({ order: payload.orderId }),
-    ]);
+    ];
+
+    if (payload.orderId) {
+      tx.push(db.tx.ProductUsageAudits[newId].link({ order: payload.orderId }));
+    }
+
+    await db.transact(tx);
 
     const result = await db.query({
       ProductUsageAudits: {

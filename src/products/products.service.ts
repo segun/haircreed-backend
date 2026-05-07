@@ -90,7 +90,9 @@ export class ProductsService {
 
   async useProduct(useProductDto: UseProductDto): Promise<Product> {
     const existingProduct = await this.findOne(useProductDto.productId);
-    await this.orderService.findOne(useProductDto.orderId);
+    if (useProductDto.orderId) {
+      await this.orderService.findOne(useProductDto.orderId);
+    }
 
     if (useProductDto.quantity > existingProduct.quantity) {
       throw new BadRequestException(

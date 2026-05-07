@@ -4,8 +4,9 @@ export class UseProductDto {
   @IsString()
   productId: string;
 
+  @IsOptional()
   @IsString()
-  orderId: string;
+  orderId?: string;
 
   @IsNumber()
   @Min(1)
