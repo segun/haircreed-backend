@@ -121,6 +121,7 @@ export class ProductsService {
         userId: useProductDto.userId,
       });
     } catch (err) {
+      console.error('Failed to record product usage audit:', err);
       // audit failures should not block product usage updates
     }
 

@@ -15,6 +15,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { BackupModule } from './backup/backup.module';
 import { WiggerModule } from './wigger/wigger.module';
 import { ProductsModule } from './products/products.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ProductsModule } from './products/products.module';
     BackupModule,
     WiggerModule,
     ProductsModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
