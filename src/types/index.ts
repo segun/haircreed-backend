@@ -44,7 +44,31 @@ export type AppSettings = {
 
 export type Settings = {
     vatRate: number;
+    businessName?: string;
+    businessAddress?: string;
+    businessLogo?: string;
+    currency?: string;
 }
+
+export type ReceiptLineItem = {
+  id: string;
+  description: string;
+  quantity: number;
+  amount: number;
+  discount: number;
+};
+
+export type Receipt = InstaQLEntity<Schema, 'Receipts'> & {
+  order?: Orders;
+  customer?: Customers;
+  businessLogo?: string;
+  lineItems: ReceiptLineItem[];
+};
+
+export type AuthenticatedPrincipal = Pick<
+  User,
+  'id' | 'username' | 'fullName' | 'role'
+>;
 
 export type Wigger = InstaQLEntity<Schema, 'Wigger'> & {
   orders?: Orders[];

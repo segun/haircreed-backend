@@ -22,8 +22,7 @@ export class AuthController {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    // In a real app, we would return a JWT (JSON Web Token) here.
-    // For now, we'll return the user object.
-    return user;
+    const session = await this.authService.createSession(user.id);
+    return { ...user, session };
   }
 }

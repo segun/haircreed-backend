@@ -15,6 +15,8 @@ interface BackupData {
     InventoryItems: any[];
     CustomerAddress: any[];
     Wigger: any[];
+    Receipts: any[];
+    ReceiptDeliveryAttempts: any[];
   };
   links: {
     AttributeCategoryItem: Array<{ itemId: string; categoryId: string }>;
@@ -24,6 +26,8 @@ interface BackupData {
     InventoryItemAttribute: Array<{ inventoryItemId: string; attributeItemId: string }>;
     CustomerCustomerAddresses: Array<{ customerId: string; addressId: string }>;
     WiggerOrder: Array<{ orderId: string; wiggerId: string }>;
+    OrderReceipt: Array<{ receiptId: string; orderId: string }>;
+    CustomerReceipt: Array<{ receiptId: string; customerId: string }>;
   };
 }
 
@@ -46,6 +50,8 @@ export class BackupService {
       InventoryItems: number;
       CustomerAddress: number;
       Wigger: number;
+      Receipts: number;
+      ReceiptDeliveryAttempts: number;
     };
   }> {
     try {
@@ -57,12 +63,14 @@ export class BackupService {
         Users: {},
         AttributeCategory: { items: {} },
         AttributeItem: { category: {}, inventoryItems: {} },
-        Orders: { customer: {}, posOperator: {}, wigger: {} },
-        Customers: { orders: {}, addresses: {} },
+        Orders: { customer: {}, posOperator: {}, wigger: {}, receipt: {} },
+        Customers: { orders: {}, addresses: {}, receipts: {} },
         Suppliers: { inventoryItems: {} },
         InventoryItems: { supplier: {}, attributes: {} },
         CustomerAddress: { customer: {} },
         Wigger: { orders: {} },
+        Receipts: { order: {}, customer: {} },
+        ReceiptDeliveryAttempts: {},
       });
 
       // Extract entities (remove linked data for clean entity storage)
@@ -76,10 +84,10 @@ export class BackupService {
           ({ category, inventoryItems, ...rest }) => rest,
         ),
         Orders: (result.Orders || []).map(
-          ({ customer, posOperator, wigger, ...rest }) => rest,
+          ({ customer, posOperator, wigger, receipt, ...rest }) => rest,
         ),
         Customers: (result.Customers || []).map(
-          ({ orders, addresses, ...rest }) => rest,
+          ({ orders, addresses, receipts, ...rest }) => rest,
         ),
         Suppliers: (result.Suppliers || []).map(
           ({ inventoryItems, ...rest }) => rest,
@@ -93,6 +101,10 @@ export class BackupService {
         Wigger: (result.Wigger || []).map(
           ({ orders, ...rest }) => rest,
         ),
+        Receipts: (result.Receipts || []).map(
+          ({ order, customer, ...rest }) => rest,
+        ),
+        ReceiptDeliveryAttempts: result.ReceiptDeliveryAttempts || [],
       };
 
       // Extract links
@@ -119,6 +131,11 @@ export class BackupService {
           orderId: string;
           wiggerId: string;
         }>,
+        OrderReceipt: [] as Array<{ receiptId: string; orderId: string }>,
+        CustomerReceipt: [] as Array<{
+          receiptId: string;
+          customerId: string;
+        }>,
       };
 
       // Extract AttributeCategoryItem links
@@ -137,6 +154,21 @@ export class BackupService {
           links.CustomerOrder.push({
             orderId: order.id,
             customerId: order.customer.id,
+          });
+        }
+      });
+
+      result.Receipts?.forEach((receipt: any) => {
+        if (receipt.order) {
+          links.OrderReceipt.push({
+            receiptId: receipt.id,
+            orderId: receipt.order.id,
+          });
+        }
+        if (receipt.customer) {
+          links.CustomerReceipt.push({
+            receiptId: receipt.id,
+            customerId: receipt.customer.id,
           });
         }
       });
@@ -247,6 +279,8 @@ export class BackupService {
               InventoryItems: entities.InventoryItems.length,
               CustomerAddress: entities.CustomerAddress.length,
               Wigger: entities.Wigger.length,
+              Receipts: entities.Receipts.length,
+              ReceiptDeliveryAttempts: entities.ReceiptDeliveryAttempts.length,
             };
 
             await backups.insertOne({
@@ -289,6 +323,8 @@ export class BackupService {
           InventoryItems: entities.InventoryItems.length,
           Wigger: entities.Wigger.length,
           CustomerAddress: entities.CustomerAddress.length,
+          Receipts: entities.Receipts.length,
+          ReceiptDeliveryAttempts: entities.ReceiptDeliveryAttempts.length,
         },
       };
     } catch (error) {

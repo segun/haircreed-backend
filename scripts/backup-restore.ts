@@ -50,6 +50,41 @@ const _schema = i.schema({
       statusHistory: i.json(),
       notes: i.string().optional(),
     }),
+    Receipts: i.entity({
+      receiptNumber: i.number().unique().indexed(),
+      orderId: i.string().unique().indexed(),
+      customerId: i.string().indexed(),
+      customerName: i.string().indexed(),
+      customerEmail: i.string().indexed(),
+      customerPhone: i.string().indexed(),
+      receiptDate: i.number().indexed(),
+      status: i.string().indexed(),
+      businessName: i.string(),
+      businessAddress: i.string(),
+      businessLogo: i.string().optional(),
+      currency: i.string(),
+      lineItems: i.json(),
+      totalAmount: i.number(),
+      createdByUserId: i.string(),
+      updatedByUserId: i.string(),
+      createdAt: i.number().indexed(),
+      updatedAt: i.number().indexed(),
+      sentAt: i.number().indexed().optional(),
+      resentAt: i.number().indexed().optional(),
+      sendCount: i.number(),
+    }),
+    ReceiptDeliveryAttempts: i.entity({
+      idempotencyKey: i.string().unique().indexed(),
+      receiptId: i.string().indexed(),
+      payloadHash: i.string(),
+      payload: i.json(),
+      renderTimestamp: i.number(),
+      state: i.string().indexed(),
+      providerResult: i.json().optional(),
+      errorCode: i.string().optional(),
+      createdAt: i.number().indexed(),
+      updatedAt: i.number().indexed(),
+    }),
     Customers: i.entity({
       fullName: i.string().indexed(),
       email: i.string().unique(),
@@ -85,6 +120,14 @@ const _schema = i.schema({
     CustomerOrder: {
       forward: { on: "Orders", has: "one", label: "customer" },
       reverse: { on: "Customers", has: "many", label: "orders" },
+    },
+    OrderReceipt: {
+      forward: { on: "Receipts", has: "one", label: "order" },
+      reverse: { on: "Orders", has: "one", label: "receipt" },
+    },
+    CustomerReceipt: {
+      forward: { on: "Receipts", has: "one", label: "customer" },
+      reverse: { on: "Customers", has: "many", label: "receipts" },
     },
     UserOrder: {
       forward: { on: "Orders", has: "one", label: "posOperator" },
@@ -123,6 +166,8 @@ interface BackupData {
     Suppliers: any[];
     InventoryItems: any[];
     CustomerAddress: any[];
+    Receipts: any[];
+    ReceiptDeliveryAttempts: any[];
   };
   links: {
     AttributeCategoryItem: Array<{ itemId: string; categoryId: string }>;
@@ -131,6 +176,8 @@ interface BackupData {
     InventoryItemSupplier: Array<{ inventoryItemId: string; supplierId: string }>;
     InventoryItemAttribute: Array<{ inventoryItemId: string; attributeItemId: string }>;
     CustomerCustomerAddresses: Array<{ customerId: string; addressId: string }>;
+    OrderReceipt: Array<{ receiptId: string; orderId: string }>;
+    CustomerReceipt: Array<{ receiptId: string; customerId: string }>;
   };
 }
 
@@ -201,11 +248,13 @@ async function backupData(): Promise<void> {
       Users: {},
       AttributeCategory: { items: {} },
       AttributeItem: { category: {}, inventoryItems: {} },
-      Orders: { customer: {}, posOperator: {} },
-      Customers: { orders: {}, addresses: {} },
+      Orders: { customer: {}, posOperator: {}, receipt: {} },
+      Customers: { orders: {}, addresses: {}, receipts: {} },
       Suppliers: { inventoryItems: {} },
       InventoryItems: { supplier: {}, attributes: {} },
       CustomerAddress: { customer: {} },
+      Receipts: { order: {}, customer: {} },
+      ReceiptDeliveryAttempts: {},
     });
 
     // Extract entities (remove linked data for clean entity storage)
@@ -214,11 +263,13 @@ async function backupData(): Promise<void> {
       Users: result.Users || [],
       AttributeCategory: (result.AttributeCategory || []).map(({ items, ...rest }) => rest),
       AttributeItem: (result.AttributeItem || []).map(({ category, inventoryItems, ...rest }) => rest),
-      Orders: (result.Orders || []).map(({ customer, posOperator, ...rest }) => rest),
-      Customers: (result.Customers || []).map(({ orders, addresses, ...rest }) => rest),
+      Orders: (result.Orders || []).map(({ customer, posOperator, receipt, ...rest }) => rest),
+      Customers: (result.Customers || []).map(({ orders, addresses, receipts, ...rest }) => rest),
       Suppliers: (result.Suppliers || []).map(({ inventoryItems, ...rest }) => rest),
       InventoryItems: (result.InventoryItems || []).map(({ supplier, attributes, ...rest }) => rest),
       CustomerAddress: (result.CustomerAddress || []).map(({ customer, ...rest }) => rest),
+      Receipts: (result.Receipts || []).map(({ order, customer, ...rest }) => rest),
+      ReceiptDeliveryAttempts: result.ReceiptDeliveryAttempts || [],
     };
 
     // Extract links
@@ -229,6 +280,8 @@ async function backupData(): Promise<void> {
       InventoryItemSupplier: [] as Array<{ inventoryItemId: string; supplierId: string }>,
       InventoryItemAttribute: [] as Array<{ inventoryItemId: string; attributeItemId: string }>,
       CustomerCustomerAddresses: [] as Array<{ customerId: string; addressId: string }>,
+      OrderReceipt: [] as Array<{ receiptId: string; orderId: string }>,
+      CustomerReceipt: [] as Array<{ receiptId: string; customerId: string }>,
     };
 
     // Extract AttributeCategoryItem links
@@ -293,6 +346,21 @@ async function backupData(): Promise<void> {
       }
     });
 
+    result.Receipts?.forEach((receipt: any) => {
+      if (receipt.order) {
+        links.OrderReceipt.push({
+          receiptId: receipt.id,
+          orderId: receipt.order.id,
+        });
+      }
+      if (receipt.customer) {
+        links.CustomerReceipt.push({
+          receiptId: receipt.id,
+          customerId: receipt.customer.id,
+        });
+      }
+    });
+
     const backupData: BackupData = {
       timestamp: Date.now(),
       entities,
@@ -336,6 +404,8 @@ async function backupData(): Promise<void> {
     console.log(`   - Suppliers: ${entities.Suppliers.length}`);
     console.log(`   - InventoryItems: ${entities.InventoryItems.length}`);
     console.log(`   - CustomerAddress: ${entities.CustomerAddress.length}`);
+    console.log(`   - Receipts: ${entities.Receipts.length}`);
+    console.log(`   - ReceiptDeliveryAttempts: ${entities.ReceiptDeliveryAttempts.length}`);
   } catch (error) {
     console.error("❌ Backup failed:", error);
     throw error;
@@ -439,6 +509,14 @@ async function restoreData(backupFilePath: string): Promise<void> {
       txs2.push(db.tx.Orders[item.id].update(item));
     });
 
+    console.log("Restoring Receipts and delivery attempts...");
+    (backupData.entities.Receipts ?? []).forEach((item) => {
+      txs2.push(db.tx.Receipts[item.id].update(item));
+    });
+    (backupData.entities.ReceiptDeliveryAttempts ?? []).forEach((item) => {
+      txs2.push(db.tx.ReceiptDeliveryAttempts[item.id].update(item));
+    });
+
     if (txs2.length > 0) {
       await db.transact(txs2);
       console.log(`✅ Restored ${txs2.length} dependent entities`);
@@ -470,6 +548,14 @@ async function restoreData(backupFilePath: string): Promise<void> {
 
     backupData.links.CustomerCustomerAddresses.forEach((link) => {
       linkTxs.push(db.tx.Customers[link.customerId].link({ addresses: link.addressId }));
+    });
+
+    (backupData.links.OrderReceipt ?? []).forEach((link) => {
+      linkTxs.push(db.tx.Receipts[link.receiptId].link({ order: link.orderId }));
+    });
+
+    (backupData.links.CustomerReceipt ?? []).forEach((link) => {
+      linkTxs.push(db.tx.Receipts[link.receiptId].link({ customer: link.customerId }));
     });
 
     if (linkTxs.length > 0) {

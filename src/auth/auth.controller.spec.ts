@@ -10,6 +10,7 @@ describe('AuthController', () => {
 
   const mockAuthService = {
     validateUser: jest.fn(),
+    createSession: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -35,13 +36,16 @@ describe('AuthController', () => {
     it('should return a user object on successful login', async () => {
       const loginDto: LoginDto = { username: 'admin', password: 'password' };
       const user = { id: '1', username: 'admin', role: 'admin' };
+      const session = { token: 'signed-token', expiresAt: 1789430400000 };
       mockAuthService.validateUser.mockResolvedValue(user);
+      mockAuthService.createSession.mockResolvedValue(session);
 
-      expect(await controller.login(loginDto)).toBe(user);
+      expect(await controller.login(loginDto)).toEqual({ ...user, session });
       expect(service.validateUser).toHaveBeenCalledWith(
         loginDto.username,
         loginDto.password,
       );
+      expect(service.createSession).toHaveBeenCalledWith(user.id);
     });
 
     it('should throw an UnauthorizedException on failed login', async () => {
