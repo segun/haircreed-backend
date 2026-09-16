@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:run": "ts-node src/database/migrate.ts",
     "instant:backup": "ts-node scripts/instant-to-mysql.ts backup",
+    "instant:validate": "ts-node scripts/instant-to-mysql.ts validate",
     "instant:import": "ts-node scripts/instant-to-mysql.ts import",
     "instant:migrate": "ts-node scripts/instant-to-mysql.ts migrate",
     "backup": "ts-node -r tsconfig-paths/register scripts/backup-restore.ts backup",

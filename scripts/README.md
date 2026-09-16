@@ -27,6 +27,14 @@ Create an encrypted InstantDB snapshot without changing MySQL:
 yarn instant:backup
 ```
 
+Validate a snapshot without connecting to MySQL:
+
+```bash
+yarn instant:validate ./backup/instantdb_2026-09-16T22-25-29-710Z.json
+```
+
+Validation reports dangling optional relationships, which import as `NULL`, and rejects missing required relationships before a MySQL transaction starts.
+
 Import a previously generated snapshot:
 
 ```bash

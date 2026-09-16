@@ -286,6 +286,80 @@ function applyForeignKeys(data: BackupData): void {
   });
 }
 
+function normalizeBackupReferences(data: BackupData): void {
+  const ids = (table: EntityName): Set<string> =>
+    new Set(data.entities[table].map((row) => row.id));
+  const nullableReferences: Array<{
+    table: EntityName;
+    field: string;
+    target: EntityName;
+  }> = [
+    { table: 'AttributeItem', field: 'categoryId', target: 'AttributeCategory' },
+    { table: 'Orders', field: 'customerId', target: 'Customers' },
+    { table: 'Orders', field: 'posOperatorId', target: 'Users' },
+    { table: 'Orders', field: 'wiggerId', target: 'Wigger' },
+    { table: 'InventoryItems', field: 'supplierId', target: 'Suppliers' },
+    { table: 'ProductUsageAudits', field: 'orderId', target: 'Orders' },
+    { table: 'CustomerAddress', field: 'customerId', target: 'Customers' },
+  ];
+  const requiredReferences: Array<{
+    table: EntityName;
+    field: string;
+    target: EntityName;
+  }> = [
+    { table: 'ProductStockAudits', field: 'productId', target: 'Products' },
+    { table: 'ProductUsageAudits', field: 'productId', target: 'Products' },
+    { table: 'Receipts', field: 'orderId', target: 'Orders' },
+    { table: 'Receipts', field: 'customerId', target: 'Customers' },
+    { table: 'ReceiptDeliveryAttempts', field: 'receiptId', target: 'Receipts' },
+    { table: 'ReceiptDeliveryLocks', field: 'receiptId', target: 'Receipts' },
+    { table: 'ReceiptDeliveryLocks', field: 'attemptId', target: 'ReceiptDeliveryAttempts' },
+  ];
+
+  for (const reference of nullableReferences) {
+    const targetIds = ids(reference.target);
+    let normalized = 0;
+    for (const row of data.entities[reference.table]) {
+      const value = row[reference.field];
+      if (value !== null && value !== undefined && !targetIds.has(value)) {
+        row[reference.field] = null;
+        normalized += 1;
+      }
+    }
+    if (normalized > 0) {
+      console.warn(
+        `Normalized ${normalized} dangling ${reference.table}.${reference.field} reference(s) to NULL; referenced ${reference.target} rows were absent from the backup.`,
+      );
+    }
+  }
+
+  for (const reference of requiredReferences) {
+    const targetIds = ids(reference.target);
+    const invalid = data.entities[reference.table].filter((row) => {
+      const value = row[reference.field];
+      return value === null || value === undefined || !targetIds.has(value);
+    }).length;
+    if (invalid > 0) {
+      throw new Error(
+        `Backup integrity check failed: ${invalid} ${reference.table}.${reference.field} reference(s) do not resolve to ${reference.target}.`,
+      );
+    }
+  }
+
+  const inventoryItemIds = ids('InventoryItems');
+  const attributeItemIds = ids('AttributeItem');
+  const invalidAttributeLinks = data.links.InventoryItemAttribute.filter(
+    (link) =>
+      !inventoryItemIds.has(link.inventoryItemId) ||
+      !attributeItemIds.has(link.attributeItemId),
+  ).length;
+  if (invalidAttributeLinks > 0) {
+    throw new Error(
+      `Backup integrity check failed: ${invalidAttributeLinks} InventoryItemAttribute link(s) reference missing entities.`,
+    );
+  }
+}
+
 function quote(identifier: string): string {
   return `\`${identifier.replace(/`/g, '``')}\``;
 }
@@ -307,6 +381,7 @@ async function upsert(connection: PoolConnection, table: EntityName, row: Row): 
 
 async function importMysql(data: BackupData): Promise<void> {
   applyForeignKeys(data);
+  normalizeBackupReferences(data);
   const pool = mysql.createPool({
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
@@ -368,6 +443,11 @@ function readBackup(filePath: string): BackupData {
   return decrypt(encrypted, backupPassword());
 }
 
+function validateBackup(data: BackupData): void {
+  applyForeignKeys(data);
+  normalizeBackupReferences(data);
+}
+
 async function main(): Promise<void> {
   const [command, filePath] = process.argv.slice(2);
   if (command === 'backup') {
@@ -379,13 +459,19 @@ async function main(): Promise<void> {
     await importMysql(readBackup(filePath));
     return;
   }
+  if (command === 'validate') {
+    if (!filePath) throw new Error('Usage: yarn instant:validate <backup-file>');
+    validateBackup(readBackup(filePath));
+    console.log(`InstantDB backup is valid for MySQL import: ${path.resolve(filePath)}`);
+    return;
+  }
   if (command === 'migrate') {
     const exported = await exportInstant();
     await importMysql(exported.data);
     console.log(`Migration source backup retained at ${exported.filePath}`);
     return;
   }
-  throw new Error('Usage: instant-to-mysql.ts <backup|import|migrate> [backup-file]');
+  throw new Error('Usage: instant-to-mysql.ts <backup|validate|import|migrate> [backup-file]');
 }
 
 if (require.main === module) {
