@@ -360,6 +360,48 @@ function normalizeBackupReferences(data: BackupData): void {
   }
 }
 
+function reportUniqueValueCollisions(data: BackupData): void {
+  const uniqueFields: Array<{ table: EntityName; field: string }> = [
+    { table: 'Users', field: 'username' },
+    { table: 'Users', field: 'email' },
+    { table: 'AttributeCategory', field: 'title' },
+    { table: 'Customers', field: 'email' },
+    { table: 'Customers', field: 'phoneNumber' },
+    { table: 'Wigger', field: 'name' },
+    { table: 'Receipts', field: 'receiptNumber' },
+    { table: 'Receipts', field: 'orderId' },
+    { table: 'ReceiptDeliveryAttempts', field: 'idempotencyKey' },
+    { table: 'ReceiptDeliveryLocks', field: 'receiptId' },
+  ];
+
+  for (const { table, field } of uniqueFields) {
+    const exact = new Map<string, number>();
+    const folded = new Map<string, Set<string>>();
+    for (const row of data.entities[table]) {
+      const value = String(row[field]);
+      exact.set(value, (exact.get(value) ?? 0) + 1);
+      const normalized = value.toLocaleLowerCase('en-US');
+      const variants = folded.get(normalized) ?? new Set<string>();
+      variants.add(value);
+      folded.set(normalized, variants);
+    }
+    const exactDuplicates = [...exact.values()].filter((count) => count > 1).length;
+    const caseVariantGroups = [...folded.values()].filter(
+      (variants) => variants.size > 1,
+    ).length;
+    if (exactDuplicates > 0) {
+      throw new Error(
+        `Backup integrity check failed: ${table}.${field} contains ${exactDuplicates} duplicate unique value group(s).`,
+      );
+    }
+    if (caseVariantGroups > 0) {
+      console.warn(
+        `Found ${caseVariantGroups} case-variant ${table}.${field} group(s); migration 002 is required before import.`,
+      );
+    }
+  }
+}
+
 function quote(identifier: string): string {
   return `\`${identifier.replace(/`/g, '``')}\``;
 }
@@ -377,11 +419,29 @@ async function upsert(connection: PoolConnection, table: EntityName, row: Row): 
   const updates = fields.filter((field) => field !== 'id');
   const sql = `INSERT INTO ${quote(table)} (${fields.map(quote).join(', ')}) VALUES (${fields.map(() => '?').join(', ')}) ON DUPLICATE KEY UPDATE ${updates.map((field) => `${quote(field)} = VALUES(${quote(field)})`).join(', ')}`;
   await connection.query(sql, fields.map((field) => sqlValue(spec, field, row[field])));
+  const [storedRows] = await connection.query<RowDataPacket[]>(
+    `SELECT ${quote('id')} FROM ${quote(table)} WHERE ${quote('id')} = ?`,
+    [row.id],
+  );
+  if (storedRows.length === 0) {
+    throw new Error(
+      `Import conflict in ${table}: source ID could not be stored because another row uses the same unique value. Ensure all numbered migrations have run and the target database does not contain a different dataset.`,
+    );
+  }
+}
+
+function readMigrations(): string[] {
+  const migrationsDirectory = path.join(process.cwd(), 'deploy/migrations');
+  return fs.readdirSync(migrationsDirectory)
+    .filter((file) => /^\d+.*\.sql$/.test(file))
+    .sort()
+    .map((file) => fs.readFileSync(path.join(migrationsDirectory, file), 'utf8'));
 }
 
 async function importMysql(data: BackupData): Promise<void> {
   applyForeignKeys(data);
   normalizeBackupReferences(data);
+  reportUniqueValueCollisions(data);
   const pool = mysql.createPool({
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
@@ -391,8 +451,7 @@ async function importMysql(data: BackupData): Promise<void> {
     connectionLimit: 1,
     multipleStatements: true,
   });
-  const migration = fs.readFileSync(path.join(process.cwd(), 'deploy/migrations/001-initial-schema.sql'), 'utf8');
-  await pool.query(migration);
+  for (const migration of readMigrations()) await pool.query(migration);
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -446,6 +505,7 @@ function readBackup(filePath: string): BackupData {
 function validateBackup(data: BackupData): void {
   applyForeignKeys(data);
   normalizeBackupReferences(data);
+  reportUniqueValueCollisions(data);
 }
 
 async function main(): Promise<void> {

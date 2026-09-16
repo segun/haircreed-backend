@@ -17,11 +17,17 @@ async function migrate(): Promise<void> {
   });
 
   try {
-    const migration = fs.readFileSync(
-      path.join(__dirname, '../../deploy/migrations/001-initial-schema.sql'),
-      'utf8',
-    );
-    await connection.query(migration);
+    const migrationsDirectory = path.join(__dirname, '../../deploy/migrations');
+    const migrationFiles = fs.readdirSync(migrationsDirectory)
+      .filter((file) => /^\d+.*\.sql$/.test(file))
+      .sort();
+    for (const migrationFile of migrationFiles) {
+      const migration = fs.readFileSync(
+        path.join(migrationsDirectory, migrationFile),
+        'utf8',
+      );
+      await connection.query(migration);
+    }
     console.log(`MySQL schema is current for database "${database}".`);
   } finally {
     await connection.end();
