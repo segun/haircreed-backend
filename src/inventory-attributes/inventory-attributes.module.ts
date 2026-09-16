@@ -2,11 +2,12 @@
 import { Module } from '@nestjs/common';
 import { InventoryAttributesController } from './inventory-attributes.controller';
 import { InventoryAttributesService } from './inventory-attributes.service';
-import { InstantModule } from '../instant/instant.module';
+import { DatabaseModule } from '../database/database.module';
+import { InventoryAttributesReadService } from './inventory-attributes-read.service';
 
 @Module({
-  imports: [InstantModule],
+  imports: [DatabaseModule],
   controllers: [InventoryAttributesController],
-  providers: [InventoryAttributesService],
+  providers: [InventoryAttributesService, InventoryAttributesReadService],
 })
 export class InventoryAttributesModule {}

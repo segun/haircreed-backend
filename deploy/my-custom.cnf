@@ -1,0 +1,14 @@
+[mysqld]
+# Boost this to 800MB - 1GB. 
+# This is the single biggest performance lever you have.
+innodb_buffer_pool_size = 1G
+
+# Increase max connections slightly for higher concurrency
+max_connections = 150
+
+# You can keep Performance Schema ON now for better debugging
+performance_schema = ON
+
+# Log slow queries to find bottlenecks as you scale to 10k users
+slow_query_log = 1
+long_query_time = 2

@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
-import { id } from "@instantdb/admin";
-import db from "../instant";
+import db, { id } from "../database/database";
 import { CreateWiggerDto } from "./dto/create-wigger.dto";
 import { Wigger } from "../types";
 

@@ -32,6 +32,19 @@
 $ npm install
 ```
 
+## Database
+
+Runtime data is stored in self-hosted MySQL 8. Redis is available through the
+global database module for distributed locks and caching. Configure the
+connection values from `.env.example`, provision the separate database once,
+and run the schema migration:
+
+```bash
+yarn migration:run
+```
+
+See [deploy/README.md](deploy/README.md) for shared-instance provisioning.
+
 ## Running the app
 
 ```bash

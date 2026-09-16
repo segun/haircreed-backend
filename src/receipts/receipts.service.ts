@@ -5,9 +5,8 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from "@nestjs/common";
-import { id } from "@instantdb/admin";
 import { createHash } from "crypto";
-import db from "../instant";
+import db, { id } from "../database/database";
 import { MailService } from "../mail/mail.service";
 import { Receipt } from "../types";
 import { ResolveReceiptDraftDto } from "./dto/resolve-receipt-draft.dto";

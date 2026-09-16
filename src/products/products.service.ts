@@ -3,8 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { id } from '@instantdb/admin';
-import db from '../instant';
+import db, { id } from '../database/database';
 import { Audit } from '../constants/audit';
 import { OrderService } from '../order/order.service';
 import { Product, ProductStockAudit, ProductUsageAudit } from '../types';

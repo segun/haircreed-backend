@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { id, TransactionChunk } from "@instantdb/admin";
-import db from "../instant";
+import db, { id, TransactionChunk } from "../database/database";
 import { InventoryItem } from "../types";
 import { CreateInventoryItemDto } from "./dto/create-inventory-item.dto";
 import { UpdateInventoryItemDto } from "./dto/update-inventory-item.dto";
@@ -18,7 +17,7 @@ export class InventoryService {
     const { quantity, costPrice, supplierId, attributeIds, userId, origin } =
       createInventoryItemDto;
 
-    const txs: TransactionChunk<any, any>[] = [
+    const txs: TransactionChunk[] = [
       db.tx.InventoryItems[newItemId].create({
         quantity,
         costPrice,
@@ -69,7 +68,7 @@ export class InventoryService {
     const existingItem = await this.findOne(itemId);
     const quantityBefore = existingItem.quantity;
 
-    const txs: TransactionChunk<any, any>[] = [];
+    const txs: TransactionChunk[] = [];
 
     const updateData: any = {};
     if (quantity !== undefined) updateData.quantity = quantity;

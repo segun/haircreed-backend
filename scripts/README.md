@@ -1,3 +1,50 @@
+# InstantDB to MySQL migration
+
+The supported cutover command exports every InstantDB entity and relationship to an encrypted local file, imports that snapshot into MySQL in one transaction, and verifies exact table counts and IDs before committing.
+
+The export covers `AppSettings`, users, inventory and attributes, suppliers, customers and addresses, orders, wiggers, products, inventory/product audits, receipts, delivery attempts, delivery locks, and all corresponding links.
+
+## Prerequisites
+
+1. Run `yarn migration:run` so the MySQL schema exists.
+2. Configure `INSTANT_APP_ID`, `INSTANT_ADMIN_TOKEN`, and all `DB_*` variables in `.env`.
+3. Configure either `BACKUP_PASSWORD` or `BACKUP_PASSWORD_FILE`. A password file avoids placing the encryption password in shell history:
+
+```bash
+mkdir -p backup
+umask 077
+openssl rand -hex 32 > backup/.instantdb-backup-key
+export BACKUP_PASSWORD_FILE=backup/.instantdb-backup-key
+```
+
+The entire `backup/` directory is ignored by Git. Keep both the encrypted snapshot and its password file in a separate secure location after migration.
+
+## Commands
+
+Create an encrypted InstantDB snapshot without changing MySQL:
+
+```bash
+yarn instant:backup
+```
+
+Import a previously generated snapshot:
+
+```bash
+yarn instant:import ./backup/instantdb_YYYY-MM-DDTHH-MM-SS-MMMZ.json
+```
+
+Export first and then import that exact in-memory snapshot:
+
+```bash
+yarn instant:migrate
+```
+
+The import is repeatable for the same snapshot. It upserts stable IDs and rebuilds `InventoryItemAttribute`. It intentionally requires MySQL to contain exactly the imported IDs at verification time; unexpected extra rows cause a rollback instead of silently producing a mixed dataset.
+
+## Legacy InstantDB restore
+
+The older commands below restore an encrypted snapshot back into InstantDB. They are retained for rollback only and are not the MySQL migration path.
+
 # Backup & Restore Utility
 
 Standalone script for backing up and restoring all InstantDB data.

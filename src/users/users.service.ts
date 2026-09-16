@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import db from '../instant';
-import { id } from '@instantdb/admin';
+import db, { id } from '../database/database';
 import { User } from "../types";
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';

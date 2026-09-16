@@ -4,16 +4,18 @@ import { SuperAdminGuard } from "../auth/super-admin.guard";
 import { MailModule } from "../mail/mail.module";
 import { ReceiptCalculator } from "./receipt-calculator";
 import { ReceiptRendererService } from "./receipt-renderer.service";
-import { ReceiptsController } from "./receipts.controller";
+import { ReceiptsController, ReceiptsReadController } from "./receipts.controller";
 import { ReceiptsService } from "./receipts.service";
+import { ReceiptsReadService } from './receipts-read.service';
 
 @Module({
   imports: [AuthModule, MailModule],
-  controllers: [ReceiptsController],
+  controllers: [ReceiptsController, ReceiptsReadController],
   providers: [
     ReceiptsService,
     ReceiptCalculator,
     ReceiptRendererService,
+    ReceiptsReadService,
     SuperAdminGuard,
   ],
 })

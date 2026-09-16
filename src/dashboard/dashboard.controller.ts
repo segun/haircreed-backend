@@ -1,13 +1,19 @@
 
-import { Controller, Get } from '@nestjs/common';
-import { DashboardService } from './dashboard.service';
+import { Controller, Get, Query as QueryDecorator, UseFilters, UseGuards } from '@nestjs/common';
+import { Query } from '../database-reads/read-query';
+import { ReadAuthGuard, ReadRoles } from '../database-reads/read-auth.guard';
+import { ReadErrorFilter } from '../database-reads/read-error.filter';
+import { DashboardReadService } from './dashboard-read.service';
 
 @Controller('/api/v1/dashboard')
 export class DashboardController {
-    constructor(private readonly dashboardService: DashboardService) {}
+    constructor(private readonly dashboardReadService: DashboardReadService) {}
 
     @Get()
-    getDashboardData() {
-        return this.dashboardService.getDashboardData();
+    @UseGuards(ReadAuthGuard)
+    @UseFilters(ReadErrorFilter)
+    @ReadRoles('ADMIN', 'SUPER_ADMIN')
+    getDashboardData(@QueryDecorator() query: Query) {
+        return this.dashboardReadService.dashboard(query);
     }
 }

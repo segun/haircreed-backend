@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { id } from "@instantdb/admin";
-import db from "../instant";
+import db, { id } from "../database/database";
 import { CreateCustomerDto } from "./dto/create-customer.dto";
 import { UpdateCustomerDto } from "./dto/update-customer.dto";
 import { Customers } from "../types";

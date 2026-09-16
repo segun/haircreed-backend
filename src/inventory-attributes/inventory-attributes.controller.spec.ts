@@ -5,6 +5,8 @@ import { InventoryAttributesService } from './inventory-attributes.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { InventoryAttributesReadService } from './inventory-attributes-read.service';
+import { ReadAuthGuard } from '../database-reads/read-auth.guard';
 
 describe('InventoryAttributesController', () => {
   let controller: InventoryAttributesController;
@@ -17,6 +19,9 @@ describe('InventoryAttributesController', () => {
     updateItem: jest.fn(),
     deleteItem: jest.fn(),
   };
+  const mockInventoryAttributesReadService = {
+    findCategories: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -26,8 +31,15 @@ describe('InventoryAttributesController', () => {
           provide: InventoryAttributesService,
           useValue: mockInventoryAttributesService,
         },
+        {
+          provide: InventoryAttributesReadService,
+          useValue: mockInventoryAttributesReadService,
+        },
       ],
-    }).compile();
+    })
+      .overrideGuard(ReadAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<InventoryAttributesController>(
       InventoryAttributesController,

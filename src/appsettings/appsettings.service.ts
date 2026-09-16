@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { id } from '@instantdb/admin';
-import db from '../instant';
+import db, { id } from '../database/database';
 import { AppSettings, UpdateAppSettingsDto } from './dto/appsettings.dto';
 
 @Injectable()

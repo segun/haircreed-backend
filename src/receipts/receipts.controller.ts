@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   Param,
   Post,
@@ -11,6 +12,7 @@ import {
   ValidationError,
   ValidationPipe,
   BadRequestException,
+  Query as QueryDecorator,
 } from "@nestjs/common";
 import { Response } from "express";
 import { SuperAdminGuard } from "../auth/super-admin.guard";
@@ -18,6 +20,10 @@ import { ResolveReceiptDraftDto } from "./dto/resolve-receipt-draft.dto";
 import { SendReceiptDto } from "./dto/send-receipt.dto";
 import { ReceiptErrorFilter } from "./receipt-error.filter";
 import { ReceiptsService } from "./receipts.service";
+import { ReceiptsReadService } from './receipts-read.service';
+import { Query } from '../database-reads/read-query';
+import { ReadAuthGuard, ReadRoles } from '../database-reads/read-auth.guard';
+import { ReadErrorFilter } from '../database-reads/read-error.filter';
 
 const validationPipe = new ValidationPipe({
   transform: true,
@@ -83,5 +89,24 @@ export class ReceiptsController {
       "Content-Length": result.buffer.length,
     });
     response.status(200).end(result.buffer);
+  }
+}
+
+@Controller('/api/v1/receipts')
+@UseGuards(ReadAuthGuard)
+@UseFilters(ReadErrorFilter)
+export class ReceiptsReadController {
+  constructor(private readonly receiptsReadService: ReceiptsReadService) {}
+
+  @Get(':receiptId')
+  @ReadRoles('SUPER_ADMIN')
+  findOne(@Param('receiptId') receiptId: string, @QueryDecorator() query: Query) {
+    return this.receiptsReadService.receiptDetail(receiptId, query);
+  }
+
+  @Get()
+  @ReadRoles('SUPER_ADMIN')
+  findAll(@QueryDecorator() query: Query) {
+    return this.receiptsReadService.receiptHistory(query);
   }
 }

@@ -1,41 +1,96 @@
-import type { IInstantDatabase, InstaQLEntity } from "@instantdb/admin";
-import type { _schema } from "../instant";
+interface Entity {
+  id: string;
+}
 
-export type DB = IInstantDatabase<typeof _schema>
-export type Schema = typeof _schema;
+export interface User extends Entity {
+  fullName: string;
+  username: string;
+  email: string;
+  passwordHash: string;
+  role: string;
+  requiresPasswordReset: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
 
-export type User = InstaQLEntity<Schema, 'Users'>;
-export type AttributeItem = InstaQLEntity<Schema, 'AttributeItem'>
-export type AttributeCategory = InstaQLEntity<Schema, 'AttributeCategory'> & {
+export interface AttributeItem extends Entity {
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AttributeCategory extends Entity {
+  title: string;
+  createdAt: number;
+  updatedAt: number;
   items: AttributeItem[];
-};
-export type Supplier = InstaQLEntity<Schema, 'Suppliers'> & {};
-export type InventoryAudit = InstaQLEntity<Schema, 'InventoryAudits'> & {
+}
+
+export interface Supplier extends Entity {
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phoneNumber?: string;
+  address?: string;
+  notes?: string;
+  createdAt: number;
+}
+
+export interface InventoryAudit extends Entity {
+  inventoryItemId: string;
+  action: string;
+  userId?: string | null;
   inventoryItem?: InventoryItem;
   userFullname?: string | null;
-};
+  details?: any;
+  quantityBefore?: number | null;
+  quantityAfter?: number | null;
+  createdAt: number;
+}
 
-export type ProductStockAudit = InstaQLEntity<Schema, 'ProductStockAudits'> & {
+export interface ProductStockAudit extends Entity {
+  productId: string;
+  action: string;
+  quantityAdded: number;
+  quantityBefore?: number | null;
+  quantityAfter?: number | null;
+  userId?: string | null;
   product?: Product;
   userFullname?: string | null;
-};
+  createdAt: number;
+}
 
-export type ProductUsageAudit = InstaQLEntity<Schema, 'ProductUsageAudits'> & {
+export interface ProductUsageAudit extends Entity {
+  productId: string;
+  orderId?: string;
+  action: string;
+  quantityUsed: number;
+  userId?: string | null;
   product?: Product;
   order?: Orders;
   userFullname?: string | null;
-};
+  createdAt: number;
+}
 
-export type InventoryItem = InstaQLEntity<Schema, 'InventoryItems'> & {
-  supplier: Supplier;
+export interface InventoryItem extends Entity {
+  quantity: number;
+  costPrice?: number;
+  lastStockedAt: number;
+  supplier?: Supplier;
   attributes: AttributeItem[];
   audits?: InventoryAudit[];
-};
+}
 
-export type Product = InstaQLEntity<Schema, 'Products'> & {
+export interface Product extends Entity {
+  name: string;
+  quantity: number;
+  createdAt: number;
+  updatedAt: number;
+  addedByUserId?: string;
+  addedByUserFullname?: string;
   stockAudits?: ProductStockAudit[];
   usageAudits?: ProductUsageAudit[];
-};
+}
 
 export type AppSettings = {
     id: string;
@@ -58,30 +113,80 @@ export type ReceiptLineItem = {
   discount: number;
 };
 
-export type Receipt = InstaQLEntity<Schema, 'Receipts'> & {
+export interface Receipt extends Entity {
+  receiptNumber: number;
+  orderId: string;
+  customerId: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  receiptDate: number;
+  status: string;
+  businessName: string;
+  businessAddress: string;
+  businessLogo?: string;
+  currency: string;
+  lineItems: ReceiptLineItem[];
+  totalAmount: number;
+  createdByUserId: string;
+  updatedByUserId: string;
+  createdAt: number;
+  updatedAt: number;
+  sentAt?: number;
+  resentAt?: number;
+  sendCount: number;
   order?: Orders;
   customer?: Customers;
-  businessLogo?: string;
-  lineItems: ReceiptLineItem[];
-};
+}
 
 export type AuthenticatedPrincipal = Pick<
   User,
   'id' | 'username' | 'fullName' | 'role'
 >;
 
-export type Wigger = InstaQLEntity<Schema, 'Wigger'> & {
+export interface Wigger extends Entity {
+  name: string;
+  createdAt: number;
+  updatedAt: number;
   orders?: Orders[];
-};
+}
 
-export type Orders = InstaQLEntity<Schema, 'Orders'> & {
+export interface Orders extends Entity {
+  orderNumber: string;
+  items: any[];
+  amount: number;
+  vatRate: number;
+  vatAmount: number;
+  discountType: string;
+  discountValue: number;
+  discountAmount: number;
+  deliveryCharge: number;
+  totalAmount: number;
+  orderStatus: string;
+  paymentStatus: string;
+  deliveryMethod: string;
+  createdAt: number;
+  updatedAt: number;
+  statusHistory: string;
+  notes?: string;
+  customer?: Customers;
   posOperator?: User;
   wigger?: Wigger;
   productUsageAudits?: ProductUsageAudit[];
-};
+}
 
-export type CustomerAddress = InstaQLEntity<Schema, 'CustomerAddress'>;
-export type Customers = InstaQLEntity<Schema, 'Customers'> & {
-    orders: Orders[];
-    addresses: CustomerAddress[];
-};
+export interface CustomerAddress extends Entity {
+  address: string;
+  isPrimary: boolean;
+  createdAt: number;
+}
+
+export interface Customers extends Entity {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  headSize?: string;
+  createdAt: number;
+  orders: Orders[];
+  addresses: CustomerAddress[];
+}

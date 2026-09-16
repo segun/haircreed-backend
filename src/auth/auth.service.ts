@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { createHmac, timingSafeEqual } from 'crypto';
-import db from '../instant';
+import db from '../database/database';
 import { AuthenticatedPrincipal } from '../types';
 
 export interface AuthSessionResult {

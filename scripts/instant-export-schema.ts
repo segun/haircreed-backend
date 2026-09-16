@@ -1,13 +1,8 @@
-import { init, i } from "@instantdb/admin";
-import * as dotenv from "dotenv";
+import { i } from '@instantdb/admin';
 
-dotenv.config();
-
-export const _schema = i.schema({
+export const instantExportSchema = i.schema({
   entities: {
-    AppSettings: i.entity({
-      settings: i.json(),
-    }),
+    AppSettings: i.entity({ settings: i.json() }),
     Users: i.entity({
       fullName: i.string(),
       username: i.string().unique(),
@@ -158,64 +153,56 @@ export const _schema = i.schema({
   },
   links: {
     AttributeCategoryItem: {
-      forward: { on: "AttributeItem", has: "one", label: "category" },
-      reverse: { on: "AttributeCategory", has: "many", label: "items" },
+      forward: { on: 'AttributeItem', has: 'one', label: 'category' },
+      reverse: { on: 'AttributeCategory', has: 'many', label: 'items' },
     },
     CustomerOrder: {
-      forward: { on: "Orders", has: "one", label: "customer" },
-      reverse: { on: "Customers", has: "many", label: "orders" },
+      forward: { on: 'Orders', has: 'one', label: 'customer' },
+      reverse: { on: 'Customers', has: 'many', label: 'orders' },
     },
     OrderReceipt: {
-      forward: { on: "Receipts", has: "one", label: "order" },
-      reverse: { on: "Orders", has: "one", label: "receipt" },
+      forward: { on: 'Receipts', has: 'one', label: 'order' },
+      reverse: { on: 'Orders', has: 'one', label: 'receipt' },
     },
     CustomerReceipt: {
-      forward: { on: "Receipts", has: "one", label: "customer" },
-      reverse: { on: "Customers", has: "many", label: "receipts" },
+      forward: { on: 'Receipts', has: 'one', label: 'customer' },
+      reverse: { on: 'Customers', has: 'many', label: 'receipts' },
     },
     UserOrder: {
-      forward: { on: "Orders", has: "one", label: "posOperator" },
-      reverse: { on: "Users", has: "many", label: "createdOrders" },
+      forward: { on: 'Orders', has: 'one', label: 'posOperator' },
+      reverse: { on: 'Users', has: 'many', label: 'createdOrders' },
     },
     InventoryItemSupplier: {
-      forward: { on: "InventoryItems", has: "one", label: "supplier" },
-      reverse: { on: "Suppliers", has: "many", label: "inventoryItems" },
+      forward: { on: 'InventoryItems', has: 'one', label: 'supplier' },
+      reverse: { on: 'Suppliers', has: 'many', label: 'inventoryItems' },
     },
     InventoryItemAttribute: {
-      forward: { on: "InventoryItems", has: "many", label: "attributes" },
-      reverse: { on: "AttributeItem", has: "many", label: "inventoryItems" },
+      forward: { on: 'InventoryItems', has: 'many', label: 'attributes' },
+      reverse: { on: 'AttributeItem', has: 'many', label: 'inventoryItems' },
     },
     InventoryAuditInventoryItem: {
-      forward: { on: "InventoryAudits", has: "one", label: "inventoryItem" },
-      reverse: { on: "InventoryItems", has: "many", label: "audits" },
+      forward: { on: 'InventoryAudits', has: 'one', label: 'inventoryItem' },
+      reverse: { on: 'InventoryItems', has: 'many', label: 'audits' },
     },
     ProductStockAuditProduct: {
-      forward: { on: "ProductStockAudits", has: "one", label: "product" },
-      reverse: { on: "Products", has: "many", label: "stockAudits" },
+      forward: { on: 'ProductStockAudits', has: 'one', label: 'product' },
+      reverse: { on: 'Products', has: 'many', label: 'stockAudits' },
     },
     ProductUsageAuditProduct: {
-      forward: { on: "ProductUsageAudits", has: "one", label: "product" },
-      reverse: { on: "Products", has: "many", label: "usageAudits" },
+      forward: { on: 'ProductUsageAudits', has: 'one', label: 'product' },
+      reverse: { on: 'Products', has: 'many', label: 'usageAudits' },
     },
     ProductUsageAuditOrder: {
-      forward: { on: "ProductUsageAudits", has: "one", label: "order" },
-      reverse: { on: "Orders", has: "many", label: "productUsageAudits" },
+      forward: { on: 'ProductUsageAudits', has: 'one', label: 'order' },
+      reverse: { on: 'Orders', has: 'many', label: 'productUsageAudits' },
     },
     CustomerCustomerAddresses: {
-      forward: { on: "Customers", has: "many", label: "addresses" },
-      reverse: { on: "CustomerAddress", has: "one", label: "customer" },
+      forward: { on: 'Customers', has: 'many', label: 'addresses' },
+      reverse: { on: 'CustomerAddress', has: 'one', label: 'customer' },
     },
     WiggerOrder: {
-      forward: { on: "Orders", has: "one", label: "wigger" },
-      reverse: { on: "Wigger", has: "many", label: "orders" },
+      forward: { on: 'Orders', has: 'one', label: 'wigger' },
+      reverse: { on: 'Wigger', has: 'many', label: 'orders' },
     },
   },
 });
-
-const db = init({
-  appId: process.env.INSTANT_APP_ID!,
-  adminToken: process.env.INSTANT_ADMIN_TOKEN!,
-  schema: _schema,
-});
-
-export default db;

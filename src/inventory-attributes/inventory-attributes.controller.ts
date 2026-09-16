@@ -1,14 +1,29 @@
 
-import { Controller, Get, Post, Body, Param, Delete, Patch, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Patch, HttpCode, Query as QueryDecorator, UseFilters, UseGuards } from '@nestjs/common';
 import { InventoryAttributesService } from './inventory-attributes.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { InventoryAttributesReadService } from './inventory-attributes-read.service';
+import { Query } from '../database-reads/read-query';
+import { ReadAuthGuard, ReadRoles } from '../database-reads/read-auth.guard';
+import { ReadErrorFilter } from '../database-reads/read-error.filter';
 
 @Controller('api/v1/inventory-attributes')
 export class InventoryAttributesController {
-  constructor(private readonly inventoryAttributesService: InventoryAttributesService) {}
+  constructor(
+    private readonly inventoryAttributesService: InventoryAttributesService,
+    private readonly inventoryAttributesReadService: InventoryAttributesReadService,
+  ) {}
+
+  @Get('categories')
+  @UseGuards(ReadAuthGuard)
+  @UseFilters(ReadErrorFilter)
+  @ReadRoles('POS_OPERATOR', 'ADMIN', 'SUPER_ADMIN')
+  findCategories(@QueryDecorator() query: Query) {
+    return this.inventoryAttributesReadService.findCategories(query);
+  }
 
   @Post('categories')
   createCategory(@Body() createCategoryDto: CreateCategoryDto) {

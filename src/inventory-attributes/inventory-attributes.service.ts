@@ -1,7 +1,6 @@
 
 import { Injectable } from '@nestjs/common';
-import db from '../instant';
-import { id } from '@instantdb/admin';
+import db, { id } from '../database/database';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateItemDto } from './dto/create-item.dto';

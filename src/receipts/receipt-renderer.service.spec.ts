@@ -14,7 +14,7 @@ describe("ReceiptRendererService", () => {
     customerName: "Ada Lovelace",
     customerEmail: "ada@example.com",
     customerPhone: "+233000000000",
-    currency: "GHS ",
+    currency: "₦",
     lineItems: [
       {
         id: "line-1",
@@ -44,5 +44,22 @@ describe("ReceiptRendererService", () => {
         businessLogo: "https://example.com/logo.png",
       }),
     ).rejects.toThrow(BadGatewayException);
+  });
+
+  it("continues long item tables on additional pages", async () => {
+    const lineItems = Array.from({ length: 31 }, (_, index) => ({
+      ...payload.lineItems[0],
+      id: `line-${index + 1}`,
+      description: `Custom wig fitting ${index + 1}`,
+    }));
+    const pdf = await renderer.render({
+      ...payload,
+      lineItems,
+      lineTotals: lineItems.map(() => 475),
+      totalAmount: 14725,
+    });
+
+    const pageCount = pdf.toString("latin1").match(/\/Type \/Page\b/g)?.length;
+    expect(pageCount).toBe(3);
   });
 });

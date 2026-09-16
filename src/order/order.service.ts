@@ -3,8 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { id } from "@instantdb/admin";
-import db from "../instant";
+import db, { id } from "../database/database";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { Orders, Wigger } from "../types";
 import { UpdateOrderDto } from "./dto/update-order.dto";

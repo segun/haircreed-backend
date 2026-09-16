@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import db from '../instant';
+import db from '../database/database';
 
 @Injectable()
 export class DashboardService {

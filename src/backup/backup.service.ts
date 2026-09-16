@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import db from '../instant';
+import db from '../database/database';
 import { MongoClient } from 'mongodb';
 
 interface BackupData {

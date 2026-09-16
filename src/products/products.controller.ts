@@ -7,18 +7,59 @@ import {
   Param,
   Patch,
   Post,
-  Query,
+  Query as QueryDecorator,
+  UseFilters,
+  UseGuards,
 } from '@nestjs/common';
-import { Product, ProductStockAudit, ProductUsageAudit } from '../types';
+import { Product } from '../types';
 import { AddProductStockDto } from './dto/add-product-stock.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UseProductDto } from './dto/use-product.dto';
 import { ProductsService } from './products.service';
+import { ProductsReadService } from './products-read.service';
+import { Query } from '../database-reads/read-query';
+import { ReadAuthGuard, ReadRoles } from '../database-reads/read-auth.guard';
+import { ReadErrorFilter } from '../database-reads/read-error.filter';
 
 @Controller('api/v1/products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly productsReadService: ProductsReadService,
+  ) {}
+
+  @Get('audits/stock')
+  @UseGuards(ReadAuthGuard)
+  @UseFilters(ReadErrorFilter)
+  @ReadRoles('SUPER_ADMIN')
+  stockAudits(@QueryDecorator() query: Query) {
+    return this.productsReadService.productAudits('stock', query);
+  }
+
+  @Get('audits/usage')
+  @UseGuards(ReadAuthGuard)
+  @UseFilters(ReadErrorFilter)
+  @ReadRoles('SUPER_ADMIN')
+  usageAudits(@QueryDecorator() query: Query) {
+    return this.productsReadService.productAudits('usage', query);
+  }
+
+  @Get(':productId')
+  @UseGuards(ReadAuthGuard)
+  @UseFilters(ReadErrorFilter)
+  @ReadRoles('ADMIN', 'SUPER_ADMIN')
+  findOne(@Param('productId') productId: string, @QueryDecorator() query: Query) {
+    return this.productsReadService.productDetail(productId, query);
+  }
+
+  @Get()
+  @UseGuards(ReadAuthGuard)
+  @UseFilters(ReadErrorFilter)
+  @ReadRoles('ADMIN', 'SUPER_ADMIN')
+  findAll(@QueryDecorator() query: Query) {
+    return this.productsReadService.productList(query);
+  }
 
   @Post()
   create(@Body() createProductDto: CreateProductDto): Promise<Product> {
@@ -36,31 +77,6 @@ export class ProductsController {
   @Post('use')
   useProduct(@Body() useProductDto: UseProductDto): Promise<Product> {
     return this.productsService.useProduct(useProductDto);
-  }
-
-  @Get('audits/stock')
-  getStockAudits(
-    @Query('productId') productId?: string,
-  ): Promise<ProductStockAudit[]> {
-    return this.productsService.getStockAudits(productId);
-  }
-
-  @Get('audits/usage')
-  getUsageAudits(
-    @Query('productId') productId?: string,
-    @Query('orderId') orderId?: string,
-  ): Promise<ProductUsageAudit[]> {
-    return this.productsService.getUsageAudits(productId, orderId);
-  }
-
-  @Get()
-  findAll(): Promise<Product[]> {
-    return this.productsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string): Promise<Product> {
-    return this.productsService.findOne(id);
   }
 
   @Patch(':id')
