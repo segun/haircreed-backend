@@ -5,26 +5,14 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
-import { AuthService } from "./auth.service";
 
 @Injectable()
 export class SuperAdminGuard implements CanActivate {
-  constructor(private readonly authService: AuthService) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const authorization = request.headers.authorization;
-    const [scheme, token] = authorization?.split(" ") ?? [];
-
-    if (scheme !== "Bearer" || !token) {
-      throw new UnauthorizedException("A valid bearer session is required");
-    }
-
-    const principal = await this.authService.verifySession(token);
+    const principal = request.user;
     if (!principal) {
-      throw new UnauthorizedException(
-        "The bearer session is invalid or expired",
-      );
+      throw new UnauthorizedException("Authentication is required");
     }
     if (principal.role !== "SUPER_ADMIN") {
       throw new ForbiddenException("SUPER_ADMIN role is required");
@@ -34,8 +22,6 @@ export class SuperAdminGuard implements CanActivate {
         "The requested actor does not match the authenticated user",
       );
     }
-
-    request.user = principal;
     return true;
   }
 }

@@ -7,43 +7,28 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthService } from '../auth/auth.service';
 
 export const READ_ROLES = 'readRoles';
 export const ReadRoles = (...roles: string[]) => SetMetadata(READ_ROLES, roles);
 
 @Injectable()
 export class ReadAuthGuard implements CanActivate {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly reflector: Reflector,
-  ) {}
+  constructor(private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const [scheme, token] = (request.headers.authorization || '').split(' ');
-    if (scheme !== 'Bearer' || !token) {
+    if (!request.user) {
       throw new UnauthorizedException({
-        message: 'A valid bearer session is required',
+        message: 'Authentication is required',
         code: 'AUTHENTICATION_REQUIRED',
         fieldErrors: {},
       });
     }
-
-    const principal = await this.authService.verifySession(token);
-    if (!principal) {
-      throw new UnauthorizedException({
-        message: 'The bearer session is invalid or expired',
-        code: 'INVALID_SESSION',
-        fieldErrors: {},
-      });
-    }
-
     const roles = this.reflector.getAllAndOverride<string[]>(READ_ROLES, [
       context.getHandler(),
       context.getClass(),
     ]) || [];
-    if (roles.length > 0 && !roles.includes(principal.role)) {
+    if (roles.length > 0 && !roles.includes(request.user.role)) {
       throw new ForbiddenException({
         message: 'The authenticated user does not have access to this resource',
         code: 'INSUFFICIENT_ROLE',
@@ -51,7 +36,6 @@ export class ReadAuthGuard implements CanActivate {
       });
     }
 
-    request.user = principal;
     return true;
   }
 }

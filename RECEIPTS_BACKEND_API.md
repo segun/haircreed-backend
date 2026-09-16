@@ -10,13 +10,13 @@ All timestamps are epoch milliseconds. Money values are decimal numbers in the c
 
 ## Authorization
 
-Both receipt endpoints require a valid logged-in user whose role is `SUPER_ADMIN`. A successful login returns a `session` object containing `token` and `expiresAt`. Send the token on receipt requests:
+Both receipt endpoints require a valid JWT for a current user whose role is `SUPER_ADMIN`. A successful login returns `accessToken` and `expiresIn`. Send the token on receipt requests:
 
 ```text
-Authorization: Bearer <session-token>
+Authorization: Bearer <accessToken>
 ```
 
-The frontend also sends `userId` because that is the convention used by the existing APIs. The backend validates the signed session and requires its user ID to match the supplied actor. Sessions expire after eight hours. Updating the user account or changing `AUTH_SESSION_SECRET` invalidates active sessions.
+The frontend also sends `userId` because that is the convention used by the existing APIs. The backend reloads the JWT subject from the database and requires its user ID to match the supplied actor. Access tokens expire after the configured `JWT_EXPIRES_IN` seconds (eight hours by default). Deleting a user or rotating `JWT_SECRET` invalidates access; role changes take effect on the next request.
 
 Receipt creation is only allowed for an order whose `paymentStatus` is `PAID`.
 

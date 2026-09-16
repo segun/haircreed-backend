@@ -1,26 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
-import { createHmac, timingSafeEqual } from 'crypto';
-import db from '../database/database';
 import { AuthenticatedPrincipal } from '../types';
+import { getJwtExpiresIn } from './jwt.config';
 
-export interface AuthSessionResult {
-  token: string;
-  expiresAt: number;
+export interface AccessTokenResult {
+  accessToken: string;
+  expiresIn: number;
 }
 
 @Injectable()
 export class AuthService {
-  constructor(private usersService: UsersService) {}
-
-  private get sessionSecret(): string {
-    const secret = process.env.AUTH_SESSION_SECRET;
-    if (!secret) {
-      throw new Error('AUTH_SESSION_SECRET environment variable is required');
-    }
-    return secret;
-  }
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   /**
    * Validates a user based on username and password.
@@ -40,75 +35,14 @@ export class AuthService {
     return null;
   }
 
-  async createSession(userId: string): Promise<AuthSessionResult> {
-    const user = await this.usersService.findOneById(userId);
-    if (!user) {
-      throw new Error('Cannot create a session for an unknown user');
-    }
-
-    const expiresAt = Date.now() + 8 * 60 * 60 * 1000;
-    const sessionVersion = user.updatedAt;
-    const unsignedToken = `${userId}.${expiresAt}.${sessionVersion}`;
-    const signature = this.sign(unsignedToken);
-
+  createAccessToken(user: AuthenticatedPrincipal): AccessTokenResult {
+    const expiresIn = getJwtExpiresIn();
     return {
-      token: `${unsignedToken}.${signature}`,
-      expiresAt,
-    };
-  }
-
-  async verifySession(token: string): Promise<AuthenticatedPrincipal | null> {
-    const [userId, expiresAtText, versionText, signature, ...extra] = token.split('.');
-    if (!userId || !expiresAtText || !versionText || !signature || extra.length > 0) {
-      return null;
-    }
-
-    const unsignedToken = `${userId}.${expiresAtText}.${versionText}`;
-    const expectedSignature = this.sign(unsignedToken);
-    const provided = Buffer.from(signature, 'hex');
-    const expected = Buffer.from(expectedSignature, 'hex');
-    if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
-      return null;
-    }
-
-    const expiresAt = Number(expiresAtText);
-    const sessionVersion = Number(versionText);
-    if (
-      !Number.isSafeInteger(expiresAt) ||
-      expiresAt <= Date.now() ||
-      !Number.isSafeInteger(sessionVersion) ||
-      sessionVersion < 0
-    ) {
-      return null;
-    }
-
-    const user = await this.usersService.findOneById(userId);
-    if (!user || user.updatedAt !== sessionVersion) {
-      return null;
-    }
-
-    return {
-      id: user.id,
-      username: user.username,
-      fullName: user.fullName,
-      role: user.role,
-    };
-  }
-
-  async revokeSessions(userId: string): Promise<void> {
-    const user = await this.usersService.findOneById(userId);
-    if (!user) {
-      return;
-    }
-
-    await db.transact([
-      db.tx.Users[userId].update({
-        updatedAt: Date.now(),
+      accessToken: this.jwtService.sign({
+        sub: user.id,
+        username: user.username,
       }),
-    ]);
-  }
-
-  private sign(value: string): string {
-    return createHmac('sha256', this.sessionSecret).update(value).digest('hex');
+      expiresIn,
+    };
   }
 }
