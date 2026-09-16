@@ -1,404 +1,108 @@
 import { Injectable } from '@nestjs/common';
-import db from '../database/database';
-import { MongoClient } from 'mongodb';
+import fs from 'fs/promises';
+import path from 'path';
+import { getPool } from '../database/database';
 
-interface BackupData {
-  timestamp: number;
-  entities: {
-    AppSettings: any[];
-    Users: any[];
-    AttributeCategory: any[];
-    AttributeItem: any[];
-    Orders: any[];
-    Customers: any[];
-    Suppliers: any[];
-    InventoryItems: any[];
-    CustomerAddress: any[];
-    Wigger: any[];
-    Receipts: any[];
-    ReceiptDeliveryAttempts: any[];
-  };
-  links: {
-    AttributeCategoryItem: Array<{ itemId: string; categoryId: string }>;
-    CustomerOrder: Array<{ orderId: string; customerId: string }>;
-    UserOrder: Array<{ orderId: string; userId: string }>;
-    InventoryItemSupplier: Array<{ inventoryItemId: string; supplierId: string }>;
-    InventoryItemAttribute: Array<{ inventoryItemId: string; attributeItemId: string }>;
-    CustomerCustomerAddresses: Array<{ customerId: string; addressId: string }>;
-    WiggerOrder: Array<{ orderId: string; wiggerId: string }>;
-    OrderReceipt: Array<{ receiptId: string; orderId: string }>;
-    CustomerReceipt: Array<{ receiptId: string; customerId: string }>;
-  };
+export interface BackupStatistics {
+  totalRows: number;
+  tables: number;
+  [tableName: string]: number;
 }
-
 
 @Injectable()
 export class BackupService {
-  // Encryption removed; backups are stored only in MongoDB
-
   async createBackup(): Promise<{
     success: boolean;
     filename: string;
-    statistics: {
-      AppSettings: number;
-      Users: number;
-      AttributeCategory: number;
-      AttributeItem: number;
-      Orders: number;
-      Customers: number;
-      Suppliers: number;
-      InventoryItems: number;
-      CustomerAddress: number;
-      Wigger: number;
-      Receipts: number;
-      ReceiptDeliveryAttempts: number;
-    };
+    path: string;
+    statistics: BackupStatistics;
   }> {
-    try {
-      // Backups are written only to MongoDB. No local encryption or disk writes.
+    const pool = getPool();
+    const databaseName = process.env.DB_NAME || 'haircreed';
+    const tableNames = await this.getTableNames(pool, databaseName);
 
-      // Query all entities with their links
-      const result = await db.query({
-        AppSettings: {},
-        Users: {},
-        AttributeCategory: { items: {} },
-        AttributeItem: { category: {}, inventoryItems: {} },
-        Orders: { customer: {}, posOperator: {}, wigger: {}, receipt: {} },
-        Customers: { orders: {}, addresses: {}, receipts: {} },
-        Suppliers: { inventoryItems: {} },
-        InventoryItems: { supplier: {}, attributes: {} },
-        CustomerAddress: { customer: {} },
-        Wigger: { orders: {} },
-        Receipts: { order: {}, customer: {} },
-        ReceiptDeliveryAttempts: {},
-      });
+    const tables: Record<string, any[]> = {};
+    const statistics: BackupStatistics = { totalRows: 0, tables: tableNames.length };
 
-      // Extract entities (remove linked data for clean entity storage)
-      const entities = {
-        AppSettings: result.AppSettings || [],
-        Users: result.Users || [],
-        AttributeCategory: (result.AttributeCategory || []).map(
-          ({ items, ...rest }) => rest,
-        ),
-        AttributeItem: (result.AttributeItem || []).map(
-          ({ category, inventoryItems, ...rest }) => rest,
-        ),
-        Orders: (result.Orders || []).map(
-          ({ customer, posOperator, wigger, receipt, ...rest }) => rest,
-        ),
-        Customers: (result.Customers || []).map(
-          ({ orders, addresses, receipts, ...rest }) => rest,
-        ),
-        Suppliers: (result.Suppliers || []).map(
-          ({ inventoryItems, ...rest }) => rest,
-        ),
-        InventoryItems: (result.InventoryItems || []).map(
-          ({ supplier, attributes, ...rest }) => rest,
-        ),
-        CustomerAddress: (result.CustomerAddress || []).map(
-          ({ customer, ...rest }) => rest,
-        ),
-        Wigger: (result.Wigger || []).map(
-          ({ orders, ...rest }) => rest,
-        ),
-        Receipts: (result.Receipts || []).map(
-          ({ order, customer, ...rest }) => rest,
-        ),
-        ReceiptDeliveryAttempts: result.ReceiptDeliveryAttempts || [],
-      };
-
-      // Extract links
-      const links = {
-        AttributeCategoryItem: [] as Array<{
-          itemId: string;
-          categoryId: string;
-        }>,
-        CustomerOrder: [] as Array<{ orderId: string; customerId: string }>,
-        UserOrder: [] as Array<{ orderId: string; userId: string }>,
-        InventoryItemSupplier: [] as Array<{
-          inventoryItemId: string;
-          supplierId: string;
-        }>,
-        InventoryItemAttribute: [] as Array<{
-          inventoryItemId: string;
-          attributeItemId: string;
-        }>,
-        CustomerCustomerAddresses: [] as Array<{
-          customerId: string;
-          addressId: string;
-        }>,
-        WiggerOrder: [] as Array<{
-          orderId: string;
-          wiggerId: string;
-        }>,
-        OrderReceipt: [] as Array<{ receiptId: string; orderId: string }>,
-        CustomerReceipt: [] as Array<{
-          receiptId: string;
-          customerId: string;
-        }>,
-      };
-
-      // Extract AttributeCategoryItem links
-      result.AttributeItem?.forEach((item: any) => {
-        if (item.category) {
-          links.AttributeCategoryItem.push({
-            itemId: item.id,
-            categoryId: item.category.id,
-          });
-        }
-      });
-
-      // Extract CustomerOrder links
-      result.Orders?.forEach((order: any) => {
-        if (order.customer) {
-          links.CustomerOrder.push({
-            orderId: order.id,
-            customerId: order.customer.id,
-          });
-        }
-      });
-
-      result.Receipts?.forEach((receipt: any) => {
-        if (receipt.order) {
-          links.OrderReceipt.push({
-            receiptId: receipt.id,
-            orderId: receipt.order.id,
-          });
-        }
-        if (receipt.customer) {
-          links.CustomerReceipt.push({
-            receiptId: receipt.id,
-            customerId: receipt.customer.id,
-          });
-        }
-      });
-
-      // Extract UserOrder links
-      result.Orders?.forEach((order: any) => {
-        if (order.posOperator) {
-          links.UserOrder.push({
-            orderId: order.id,
-            userId: order.posOperator.id,
-          });
-        }
-      });
-
-      // Extract InventoryItemSupplier links
-      result.InventoryItems?.forEach((item: any) => {
-        if (item.supplier) {
-          links.InventoryItemSupplier.push({
-            inventoryItemId: item.id,
-            supplierId: item.supplier.id,
-          });
-        }
-      });
-
-      // Extract InventoryItemAttribute links
-      result.InventoryItems?.forEach((item: any) => {
-        if (item.attributes && item.attributes.length > 0) {
-          item.attributes.forEach((attr: any) => {
-            links.InventoryItemAttribute.push({
-              inventoryItemId: item.id,
-              attributeItemId: attr.id,
-            });
-          });
-        }
-      });
-
-      // Extract CustomerCustomerAddresses links
-      result.CustomerAddress?.forEach((address: any) => {
-        if (address.customer) {
-          links.CustomerCustomerAddresses.push({
-            customerId: address.customer.id,
-            addressId: address.id,
-          });
-        }
-      });
-
-      // Extract WiggerOrder links
-      result.Orders?.forEach((order: any) => {
-        if (order.wigger) {
-          links.WiggerOrder.push({
-            orderId: order.id,
-            wiggerId: order.wigger.id,
-          });
-        }
-      });
-
-      const backupData: BackupData = {
-        timestamp: Date.now(),
-        entities,
-        links,
-      };
-
-      // Generate filename with date and time (used for Mongo record)
-      const now = new Date();
-      const filename = `backup_${now.getFullYear()}-${String(
-        now.getMonth() + 1,
-      ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(
-        now.getHours(),
-      ).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(
-        now.getSeconds(),
-      ).padStart(2, '0')}.json`;
-
-      // write the un-encrypted backup file to mongo db. use MONGO_URI from env variables
-      try {
-        const mongoUri = process.env.MONGO_URI;
-        console.log('MONGO_URI:', mongoUri);
-        if (mongoUri) {
-          let client: MongoClient | null = null;
-          try {
-            client = new MongoClient(mongoUri as string, {} as any);
-            await client.connect();
-
-            // try to derive db name from URI, fallback to MONGO_DB or default
-            let dbName: string | undefined;
-            try {
-              const parsed = new URL(mongoUri as string);
-              const pathname = parsed.pathname || '';
-              if (pathname && pathname !== '/') dbName = pathname.replace(/^\//, '');
-            } catch (e) {
-              // ignore parse errors
-            }
-            // Prefer explicit MONGO_DB_NAME env var, then parsed name, then legacy MONGO_DB, then default
-            dbName = process.env.MONGO_DB_NAME || dbName || process.env.MONGO_DB || 'haircreed_backups';
-
-            console.log('Using MongoDB database name for backup:', dbName);
-            
-            const mongoDb = client.db(dbName);
-            const backups = mongoDb.collection('backups');
-
-            const stats = {
-              AppSettings: entities.AppSettings.length,
-              Users: entities.Users.length,
-              AttributeCategory: entities.AttributeCategory.length,
-              AttributeItem: entities.AttributeItem.length,
-              Orders: entities.Orders.length,
-              Customers: entities.Customers.length,
-              Suppliers: entities.Suppliers.length,
-              InventoryItems: entities.InventoryItems.length,
-              CustomerAddress: entities.CustomerAddress.length,
-              Wigger: entities.Wigger.length,
-              Receipts: entities.Receipts.length,
-              ReceiptDeliveryAttempts: entities.ReceiptDeliveryAttempts.length,
-            };
-
-            await backups.insertOne({
-              filename,
-              timestamp: backupData.timestamp,
-              statistics: stats,
-              data: backupData,
-              createdAt: new Date(),
-            });
-
-            // Enforce backup retention: keep only the last N backups
-            await this.enforceBackupRetention(mongoDb);
-          } catch (err) {
-            // Do not fail the whole backup if mongo write fails; log for operator
-            // eslint-disable-next-line no-console
-            console.error('Failed to write backup to MongoDB:', (err as any)?.message || err);
-          } finally {
-            if (client) await client.close();
-          }
-        } else {
-          // eslint-disable-next-line no-console
-          console.warn('MONGO_URI not set; skipping mongo backup insertion.');
-        }
-      } catch (err) {
-        // swallow any unexpected errors writing to mongo to avoid breaking backup creation
-        // eslint-disable-next-line no-console
-        console.error('Unexpected error while attempting to write backup to MongoDB:', (err as any)?.message || err);
-      }
-      return {
-        success: true,
-        filename,
-        statistics: {
-          AppSettings: entities.AppSettings.length,
-          Users: entities.Users.length,
-          AttributeCategory: entities.AttributeCategory.length,
-          AttributeItem: entities.AttributeItem.length,
-          Orders: entities.Orders.length,
-          Customers: entities.Customers.length,
-          Suppliers: entities.Suppliers.length,
-          InventoryItems: entities.InventoryItems.length,
-          Wigger: entities.Wigger.length,
-          CustomerAddress: entities.CustomerAddress.length,
-          Receipts: entities.Receipts.length,
-          ReceiptDeliveryAttempts: entities.ReceiptDeliveryAttempts.length,
-        },
-      };
-    } catch (error) {
-      throw error;
+    for (const tableName of tableNames) {
+      const [rows] = await pool.query(`SELECT * FROM \`${tableName}\``);
+      const rowList = Array.isArray(rows) ? (rows as any[]) : [];
+      tables[tableName] = rowList;
+      statistics[tableName] = rowList.length;
+      statistics.totalRows += rowList.length;
     }
+
+    const now = new Date();
+    const filename = `backup_${now.getFullYear()}-${String(
+      now.getMonth() + 1,
+    ).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(
+      now.getHours(),
+    ).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(
+      now.getSeconds(),
+    ).padStart(2, '0')}.json`;
+
+    const backupDir = path.resolve(process.cwd(), process.env.BACKUP_DIR || 'backup');
+    await fs.mkdir(backupDir, { recursive: true });
+
+    const filePath = path.join(backupDir, filename);
+    const payload = {
+      database: databaseName,
+      generatedAt: now.getTime(),
+      tables,
+      statistics,
+    };
+
+    await fs.writeFile(filePath, JSON.stringify(payload, null, 2));
+    await this.enforceRetention(backupDir);
+
+    return {
+      success: true,
+      filename,
+      path: filePath,
+      statistics,
+    };
   }
 
-  /**
-   * Parse BACKUP_MAX_COUNT env var with validation and fallback to default (120).
-   */
+  private async getTableNames(pool: any, databaseName: string): Promise<string[]> {
+    const [rows] = await pool.query(
+      `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME`,
+      [databaseName],
+    );
+
+    return (rows as Array<{ TABLE_NAME: string }>).map(({ TABLE_NAME }) => TABLE_NAME);
+  }
+
   private getMaxBackupCount(): number {
     const envValue = process.env.BACKUP_MAX_COUNT;
     if (!envValue) {
-      return 120; // default
+      return 120;
     }
-    const parsed = parseInt(envValue, 10);
-    if (!isNaN(parsed) && parsed >= 1) {
+
+    const parsed = Number.parseInt(envValue, 10);
+    if (Number.isFinite(parsed) && parsed >= 1) {
       return parsed;
     }
-    // Invalid value, log and fallback
+
     console.warn(
       `Invalid BACKUP_MAX_COUNT="${envValue}" (must be >= 1); using default 120`,
     );
     return 120;
   }
 
-  /**
-   * Enforce backup retention by deleting backups older than the last N records.
-   * This is best-effort: if retention fails, only logs the error and does not throw.
-   */
-  private async enforceBackupRetention(mongoDb: any): Promise<void> {
+  private async enforceRetention(backupDir: string): Promise<void> {
     const maxBackups = this.getMaxBackupCount();
-    const backups = mongoDb.collection('backups');
+    const entries = await fs.readdir(backupDir);
+    const backupFiles = entries
+      .filter((entry) => entry.endsWith('.json'))
+      .sort((a, b) => a.localeCompare(b));
 
-    try {
-      const count = await backups.countDocuments();
-
-      if (count <= maxBackups) {
-        // Already within limit
-        return;
-      }
-
-      // Query the newest maxBackups records sorted by timestamp descending
-      const backupsToKeep = await backups
-        .find({})
-        .sort({ timestamp: -1 })
-        .limit(maxBackups)
-        .toArray();
-
-      if (backupsToKeep.length === 0) {
-        // Safety check: no records to keep (shouldn't happen)
-        return;
-      }
-
-      // Get the oldest timestamp of records to keep
-      const oldestToKeepId = backupsToKeep[backupsToKeep.length - 1]._id;
-
-      // Delete all backups older than the last maxBackups (using _id comparison as tiebreaker)
-      const deleteResult = await backups.deleteMany({
-        _id: { $lt: oldestToKeepId },
-      });
-
-      if (deleteResult.deletedCount > 0) {
-        console.log(
-          `Backup retention: deleted ${deleteResult.deletedCount} backup(s), ` +
-            `keeping ${backupsToKeep.length}/${maxBackups}`,
-        );
-      }
-    } catch (err) {
-      // Retention failure is non-fatal; log and continue
-      console.error(
-        'Backup retention cleanup failed:',
-        (err as any)?.message || err,
-      );
+    if (backupFiles.length <= maxBackups) {
+      return;
     }
+
+    const staleFiles = backupFiles.slice(0, backupFiles.length - maxBackups);
+    await Promise.all(
+      staleFiles.map((fileName) => fs.unlink(path.join(backupDir, fileName))),
+    );
   }
 }

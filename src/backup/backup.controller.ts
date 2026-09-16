@@ -1,5 +1,13 @@
-import { Controller, Post, HttpCode, HttpStatus, Get } from '@nestjs/common';
-import { BackupService } from './backup.service';
+import { Controller, HttpCode, HttpStatus, Get } from '@nestjs/common';
+import { BackupService, BackupStatistics } from './backup.service';
+
+interface BackupResponse {
+  success: boolean;
+  filename?: string;
+  path?: string;
+  statistics?: BackupStatistics;
+  message?: string;
+}
 
 @Controller('/api/v1/backup')
 export class BackupController {
@@ -7,7 +15,7 @@ export class BackupController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async createBackup() {
+  async createBackup(): Promise<BackupResponse> {
     try {
       const result = await this.backupService.createBackup();
       return {
