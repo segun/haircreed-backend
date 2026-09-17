@@ -2,6 +2,7 @@ import { Type } from "class-transformer";
 import {
   ArrayMinSize,
   IsArray,
+  IsEmail,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -67,6 +68,9 @@ export class SendReceiptDto {
   @IsNotEmpty()
   @Matches(/\S/)
   customerId: string;
+
+  @IsEmail()
+  recipientEmail: string;
 
   @IsString()
   @IsNotEmpty()

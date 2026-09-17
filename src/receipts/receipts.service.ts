@@ -191,18 +191,10 @@ export class ReceiptsService {
     if (!customer) {
       throw this.notFound("CUSTOMER_NOT_FOUND", "Customer not found");
     }
-    if (!/^\S+@\S+\.\S+$/.test(customer.email?.trim() ?? "")) {
-      throw new UnprocessableEntityException({
-        message: "Customer must have a valid email address",
-        code: "INVALID_CUSTOMER_EMAIL",
-        fieldErrors: {
-          customerId: "Selected customer has no valid email address",
-        },
-      });
-    }
 
     const calculation = this.calculator.calculate(request.lineItems);
     const renderTimestamp = Date.now();
+    const recipientEmail = request.recipientEmail.trim();
     const payload: RenderReceiptPayload = {
       receiptNumber: receipt.receiptNumber,
       receiptDate: request.receiptDate,
@@ -210,7 +202,7 @@ export class ReceiptsService {
       businessAddress: request.businessAddress.trim(),
       businessLogo: request.businessLogo,
       customerName: customer.fullName,
-      customerEmail: customer.email,
+      customerEmail: recipientEmail,
       customerPhone: customer.phoneNumber,
       currency: request.currency.trim(),
       lineItems: request.lineItems,
@@ -259,7 +251,7 @@ export class ReceiptsService {
     }
     try {
       await this.mailService.send({
-        to: customer.email,
+        to: recipientEmail,
         subject: `Receipt ${receipt.receiptNumber} from ${payload.businessName}`,
         html: this.buildEmailHtml(payload),
         text: this.buildEmailText(payload),
@@ -289,7 +281,7 @@ export class ReceiptsService {
       currency: payload.currency,
       customerId: customer.id,
       customerName: customer.fullName,
-      customerEmail: customer.email,
+      customerEmail: recipientEmail,
       customerPhone: customer.phoneNumber,
       lineItems: request.lineItems,
       totalAmount: calculation.totalAmount,
